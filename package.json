@@ -1,0 +1,22 @@
+{
+    "author": "Anton Yashchuk <anton.yashchuk@gmail.com>",
+    "name": "seamless",
+    "description": "seamlessly (and asyncronously) work with remote objects",
+    "version": "0.0.1-alpha",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/cyper8/seamless.git"
+    },
+    "main": "seamless.js",
+    "dependencies": {
+        "express": "4.14.0",
+        "ws": "1.1.1"
+    },
+    "devDependencies": {
+        "webpack": "1.13.3"
+    },
+    "scripts": {
+        "build": "webpack"
+    }
+}

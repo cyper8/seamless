@@ -1,2 +1,10 @@
 # seamless
-seamlessly work with objects as if they are local (but with hooks if they are remotely changed)
+
+## Seamlessly (and asyncronously) work with remote objects
+
+Module returns a Promise, which resolves with object:
+
+    {
+        data: _object_of_data_,
+        post: _function_to_post_data_in_case_of_changes_
+    }
