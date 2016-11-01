@@ -20,11 +20,14 @@ var server = require('http').createServer()
   , wss = new WebSocketServer({ server: server })
   , express = require('express')
   , app = express()
-  , port = 4080;
- 
-app.use(function (req, res) {
-  res.send(getData());
-});
+  , port = 8080;
+
+app.use(require("helmet")());
+// app.use(function (req, res) {
+//   res.send(getData());
+// });
+app.use(express.static('../tests/',{maxAge:1000}));
+app.use(express.static('../bin/',{maxAge:1000}));
  
 wss.on('connection', function connection(ws) {
   var location = url.parse(ws.upgradeReq.url, true);
@@ -41,4 +44,5 @@ wss.on('connection', function connection(ws) {
 });
  
 server.on('request', app);
+//app.listen(process.env.PORT, process.env.IP);
 server.listen(port, function () { console.log('Listening on ' + server.address().port) });

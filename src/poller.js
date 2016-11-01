@@ -1,6 +1,5 @@
-var connect = require("./ajax.js");
-
 module.exports = function(url){
+  var connect = require("./ajax.js");
   var timer,
   poller;
   return new Promise(

@@ -1,7 +1,6 @@
-var md5 = require("./md5.js").md5;
 
 module.exports = function(url){
-  
+  var md5 = require("./md5.js")();
   return new Promise(
     function(success,error){
       var storage = require("./storage.js");
