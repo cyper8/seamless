@@ -1,7 +1,7 @@
 /* global URL, Blob, Worker */
 //var getWorkerCode = require("worker.js");
 
-module.exports = function(endpoint){
+module.exports = function Seamless(endpoint){
   if (window.Worker) {
     var worker;
     return new Promise(
