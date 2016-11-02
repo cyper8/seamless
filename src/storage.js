@@ -1,4 +1,4 @@
-/*  global Window, CustomEvent  */
+/*  global localStorage, CustomEvent  */
 
 
 
@@ -16,11 +16,11 @@ module.exports = function(){
   	}
   }
   if (storageAvailable('localStorage')){
-    return Window.localStorage;
+    return window.localStorage;
   }
   else{
-    return Object.defineProperties({},{
-      setItem: {
+    return Object.defineProperties(new Object(),{
+      'setItem': {
         value: function(k,v){
           var e = new CustomEvent('storage',{detail:{
             key:k,
@@ -29,22 +29,22 @@ module.exports = function(){
             storageArea:this
           }});
           this[k] = v;
-          window.dispatchEvent(e);
+          (window || self).dispatchEvent(e);
           return v;
         } 
       },
-      getItem: {
+      'getItem': {
         value: function(k){
           return this[k] || null;
         }
       },
-      removeItem: {
+      'removeItem': {
         value: function(k){
           delete this[k];
           return this;
         }
       },
-      key: {
+      'key': {
         value: function(n){
           var i,c=0;
           for (i in this){
@@ -53,7 +53,7 @@ module.exports = function(){
           }
         }
       },
-      clear: {
+      'clear': {
         value: function(){
           var i;
           for (i in this){
@@ -62,7 +62,7 @@ module.exports = function(){
           return this;
         }
       },
-      length: {
+      'length': {
         get: function(){
           var i,c=0;
           for (i in this){

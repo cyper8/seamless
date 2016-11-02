@@ -2,7 +2,7 @@
   "author": "Anton Yashchuk <anton.yashchuk@gmail.com>",
   "name": "seamless",
   "description": "seamlessly (and asyncronously) work with remote objects",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1-beta",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
   "dependencies": {
     "express": "4.14.0",
     "helmet": "2.3.0",
-    "ws": "1.1.1"
+    "express-ws": "2.0.0"
   },
   "devDependencies": {
     "mocha": "3.1.2",

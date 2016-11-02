@@ -1,27 +1,38 @@
-module.exports = function(url){
+module.exports = function(url,callback){
+  var callback = callback;
   var connect = require("./ajax.js");
   var timer,
   poller;
-  return new Promise(
-    function(success, error){
+  (
+    function createConnection(success){
       timer = setInterval(function(){
-        poller = connect(url,'')
-          .then(Result)
-          .catch(function(err){
-            clearInterval(timer);
-            error(err);
-          });
+        try {
+          poller = connect(url,'',Result)
+        }
+        catch(err) {
+          console.error(err);
+        }
       }, 3000);
       function Result(responce){
         return success({
           data: responce,
-          post: Post
+          post: Post.bind(this),
+          connection: {
+            disconnect: function(){
+              clearInterval(timer);
+              poller = null;
+            },
+            reconnect: function(){
+              clearInterval(timer);
+              poller = null;
+              createConnection(success);
+            }
+          }
         });
       }
       function Post(d){
-        return connect(url,d)
-          .then(Result, error);
+        connect(url,d,callback);
       }
     }
-  );
+  )(callback);
 };

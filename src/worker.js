@@ -9,19 +9,21 @@ function workerFunction(url){
       postMessage(null);
     }
   };
-  var receiver = require("./receiver.js")(url)
-    .then(function(res){
-      sendToServer = res.post;
-      postMessage(res.data);
-    })
-    .catch(function(err){
-      throw new Error(err);
-    });
+  function respHandler(res){
+    sendToServer = res.post;
+    postMessage(res.data);
+  }
+  if (WebSocket){
+    require("./socket.js")(url,respHandler);
+  }
+  else{
+    require("./poller.js")(url,respHandler);
+  }
 };
 
 module.exports.code = function(url){
   var code = workerFunction.toString();
-  var re = /([a-zA-Z_]*require[_]*)\(([^()]*)\)[^( ;]*/m;
+  var re = /([a-zA-Z_]*require[_]*)\(([^()]*)\)[^({ ;]*/m;
   var m;
   while((m = re.exec(code)) !== null){
     if (m.index === re.lastIndex) re.lastIndex++;
