@@ -1,8 +1,15 @@
 module.exports = function(url,callback){
-  var callback = callback;
+  var socket,ct,rt,rc=0,callback = callback;
   (function createConnection(success){
-    var socket = new WebSocket(url);
+    socket = new WebSocket(url);
+    ct=setTimeout(socket.close,9000);
+    console.log("New connection to "+url+". Status:"+socket.readyState);
+    socket.onclose = function(e){
+      console.log("Connection to "+url+" closed.");
+    };
     socket.onopen = function(e){
+      clearTimeout(ct);
+      rc=0;
       if (e.data) {
         console.log("worker: websocket: "+e.data);
         Response(e.data);
@@ -17,13 +24,27 @@ module.exports = function(url,callback){
         data: res,
         post: socket.send.bind(socket),
         connection: {
-          disconnect: socket.close,
-          reconnect: function(){
+          disconnect: function(){
+            if(rt)clearInterval(rt);
             socket.close();
-            createConnection(success);
-          }
+          },
+          reconnect: socket.close
         }
       });
+    }
+    if (!rt){// WATCHDOG
+      rt=setInterval(
+        function(){
+          if (socket){
+            if (socket.readyState == 3){
+              createConnection(success);
+              rc++;
+            }
+          }
+          if (rc>5){
+            clearInterval(rt);
+          }
+        }, 10000);
     }
   })(callback);
 };

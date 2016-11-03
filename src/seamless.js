@@ -1,7 +1,7 @@
 /* global URL, Blob, Worker */
 //var getWorkerCode = require("worker.js");
 var storage = require("./storage.js")(),
-  md5 = require("./md5.js")();
+    md5 = require("./md5.js")();
   
 function setData(r,d){
   var m=md5,s=storage;
@@ -28,6 +28,9 @@ function processResponse(rh,r){
       connection: r.connection
     },
     {
+      route: {
+        value: rh
+      },
       hash: {
         value: dh
       },
@@ -47,15 +50,37 @@ function processResponse(rh,r){
 }
   
 window.Seamless = {
-  addEndpoint:function(endpoint,callback){
+  storage: storage,
+  getByRoute:function(url){
+    return this[md5(url)];
+  },
+  connect:function(endpoint,callback){
     var rh = md5(endpoint);
     
-    if (window.Seamless[rh]) {
-      callback(window.Seamless[rh]);
+    if (this[rh]) {
+      callback(this[rh]);
     }
-    else if (Worker) {
-      var worker;
-//      return new Promise(
+    else {
+      var dh;
+      if ((dh=storage.getItem(rh)) !== null){
+        callback(this[rh]={
+          route: rh,
+          hash: dh,
+          get data(){
+            return JSON.parse(storage.getItem(this.hash));
+          },
+          set data(v){
+            
+          },
+          connection: {
+            disconnect:function(){
+              delete window.Seamless[this.route];
+            }
+          }
+        });
+      }
+      if (Worker) {
+        var worker;
         (function createConnection(success){
           worker = new Worker(
             URL.createObjectURL(
@@ -80,26 +105,23 @@ window.Seamless = {
             }));
           };
         })(callback);
-//      )
-//      .then(callback)
-//      .catch(function(err){
-//        console.error(err);
-//      });
-    }
-    else {
-      (function(success){
-        if (WebSocket){
-          require("./socket.js")(endpoint,success);
-        }
-        else {
-          require("./poller.js")(endpoint,success);
-        }
-      })(function(res){
-        callback(processResponse(rh,res));
-      });
+      }
+      else {
+        (function(success){
+          if (WebSocket){
+            require("./socket.js")(endpoint,success);
+          }
+          else {
+            require("./poller.js")(endpoint,success);
+          }
+        })(function(res){
+          callback(processResponse(rh,res));
+        });
+      }
     }
   },
-  removeEndpoint:function(endpoint){
+  disconnect:function(endpoint){
+    window.Seamless[md5(endpoint)].connection.disconnect();
     delete window.Seamless[md5(endpoint)];
   }
 };

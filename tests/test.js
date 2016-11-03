@@ -58,7 +58,7 @@ function sync(arg){
 }
 
 Seamless
-  .addEndpoint(
+  .connect(
     "wss://seamless-cyper8.c9users.io/test",
     function(resp){
       var out = document.querySelector("#output");
