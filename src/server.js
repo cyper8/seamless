@@ -11,6 +11,7 @@ function getData(){
 }
 
 function setData(d){
+  if (typeof d !== 'string') d=JSON.stringify(d);
   console.log("set data: "+d);
   data = JSON.parse(d);
   return d;
@@ -18,13 +19,22 @@ function setData(d){
   
 var express = require('express')
   , url = require("url")
+  , bodyParser = require("body-parser")
+  , jsonParser = bodyParser.json()
   , app = express()
   , expressWs = require("express-ws")(app);
 
 app.use(require("helmet")());
-// app.use(function (req, res) {
-//   res.send(getData());
-// });
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.get('/test', jsonParser, function (req, res) {
+  res.send(getData());
+});
+app.post('/test', jsonParser, function(req, res){
+  if (!req.body) res.sendStatus(400);
+  setData(req.body);
+  res.json(req.body);
+});
 
 app.ws('/test', function(ws, req){
   var location = url.parse(ws.upgradeReq.url, true);

@@ -50,12 +50,8 @@ module.exports = function(url,callback){
           }
           if (rc>5){
             clearInterval(rt);
-            if (window){
-              alert("Connection lost. Reconnection constantly failing. Try reloading page.");
-            }
-            else {
-              success(false);
-            }
+            alert("Connection lost. Reconnection constantly failing. Try reloading page.") ||
+            success(false);
           }
         }, 10000);
     }

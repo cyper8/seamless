@@ -1,12 +1,6 @@
 
 function workerFunction(url){
   var sendToServer;
-  if (WebSocket){
-    require("./socket.js")(url,respHandler);
-  }
-  else{
-    require("./poller.js")(url,respHandler);
-  }
   onmessage = function(e){
     if (sendToServer){
       sendToServer(e.data || e);
@@ -21,6 +15,12 @@ function workerFunction(url){
       postMessage(res.data);
     }
     else {postMessage("false")};
+  }
+  if (!(url.search(/^wss?:\/\//i)<0) && WebSocket){
+    require("./socket.js")(url,respHandler);
+  }
+  else{
+    require("./poller.js")(url,respHandler);
   }
 };
 

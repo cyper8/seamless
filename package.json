@@ -11,6 +11,7 @@
   "main": "seamless.js",
   "dependencies": {
     "express": "4.14.0",
+    "body-parser": "1.15.2",
     "helmet": "2.3.0",
     "express-ws": "2.0.0"
   },

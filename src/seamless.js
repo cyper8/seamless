@@ -20,10 +20,10 @@ function setData(r,d){
   }
   return dh;            // return data hash
 }
-
-function processResponse(rh,r){
-  var dh = setData(rh,r.data);
-  return window.Seamless[rh] = Object.defineProperties(
+function processResponse(rh,r,callback){
+  var dh;
+  dh = setData(rh,r.data)
+  callback(window.Seamless[rh] = Object.defineProperties(
     {
       connection: r.connection
     },
@@ -46,7 +46,7 @@ function processResponse(rh,r){
         }
       },
     }
-  );
+  ));
 }
   
 window.Seamless = {
@@ -70,7 +70,7 @@ window.Seamless = {
             return JSON.parse(storage.getItem(this.hash));
           },
           set data(v){
-            
+
           },
           connection: {
             disconnect:function(){
@@ -93,7 +93,7 @@ window.Seamless = {
           };
           worker.onmessage = function(e){
             if (e.data != "false") {
-              success(processResponse(rh,{
+              processResponse(rh,{
                 data: e.data,
                 post: worker.postMessage.bind(worker),
                 connection: {
@@ -103,7 +103,7 @@ window.Seamless = {
                     createConnection(success);
                   }
                 }
-              }));
+              },success);
             }
             else {
               alert("Connection lost. Reconnection constantly failing. Try reloading page.");
@@ -112,16 +112,16 @@ window.Seamless = {
         })(callback);
       }
       else {
-        (function(success){
-          if (WebSocket){
-            require("./socket.js")(endpoint,success);
+        (function(url,success){
+          if (!(url.search(/^wss?:\/\//i)<0) && WebSocket){
+            require("./socket.js")(url,success);
           }
-          else {
-            require("./poller.js")(endpoint,success);
+          else{
+            require("./poller.js")(url,success);
           }
-        })(function(res){
+        })(endpoint,function(res){
           if (res){
-            callback(processResponse(rh,res));
+            processResponse(rh,res,callback);
           }
           else {
             alert("Connection lost. Reconnection constantly failing. Try reloading page.");
