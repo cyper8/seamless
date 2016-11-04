@@ -92,17 +92,22 @@ window.Seamless = {
             console.error(e);
           };
           worker.onmessage = function(e){
-            success(processResponse(rh,{
-              data: e.data,
-              post: worker.postMessage.bind(worker),
-              connection: {
-                disconnect: worker.terminate,
-                reconnect: function(){
-                  worker.terminate();
-                  createConnection(success);
+            if (e.data != "false") {
+              success(processResponse(rh,{
+                data: e.data,
+                post: worker.postMessage.bind(worker),
+                connection: {
+                  disconnect: worker.terminate,
+                  reconnect: function(){
+                    worker.terminate();
+                    createConnection(success);
+                  }
                 }
-              }
-            }));
+              }));
+            }
+            else {
+              alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+            }
           };
         })(callback);
       }
@@ -115,7 +120,12 @@ window.Seamless = {
             require("./poller.js")(endpoint,success);
           }
         })(function(res){
-          callback(processResponse(rh,res));
+          if (res){
+            callback(processResponse(rh,res));
+          }
+          else {
+            alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+          }
         });
       }
     }

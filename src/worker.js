@@ -1,23 +1,26 @@
 
 function workerFunction(url){
   var sendToServer;
-  onmessage = function(e){
-    if (sendToServer){
-      sendToServer(e.data || e);
-    }
-    else{
-      postMessage(null);
-    }
-  };
-  function respHandler(res){
-    sendToServer = res.post;
-    postMessage(res.data);
-  }
   if (WebSocket){
     require("./socket.js")(url,respHandler);
   }
   else{
     require("./poller.js")(url,respHandler);
+  }
+  onmessage = function(e){
+    if (sendToServer){
+      sendToServer(e.data || e);
+    }
+    else{
+      postMessage("");
+    }
+  };
+  function respHandler(res){
+    if (res){
+      sendToServer = res.post;
+      postMessage(res.data);
+    }
+    else {postMessage("false")};
   }
 };
 

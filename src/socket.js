@@ -1,9 +1,9 @@
 module.exports = function(url,callback){
-  var socket,ct,rt,rc=0,callback = callback;
+  var socket,ct,rt,rc=0,ec=0;
   (function createConnection(success){
     socket = new WebSocket(url);
     ct=setTimeout(socket.close,9000);
-    console.log("New connection to "+url+". Status:"+socket.readyState);
+    console.log("New connection to "+url);
     socket.onclose = function(e){
       console.log("Connection to "+url+" closed.");
     };
@@ -11,11 +11,18 @@ module.exports = function(url,callback){
       clearTimeout(ct);
       rc=0;
       if (e.data) {
-        console.log("worker: websocket: "+e.data);
         Response(e.data);
       }
     };
-    socket.onerror = console.error;
+    socket.onerror = function(err){
+      console.error(err);
+      ec++;
+      if (ec>10) {
+        socket.close();
+        console.log("Too many errors. Reconnecting");
+        ec=0;
+      }
+    };
     socket.onmessage = function(e){
       Response(e.data);
     };
@@ -36,13 +43,19 @@ module.exports = function(url,callback){
       rt=setInterval(
         function(){
           if (socket){
-            if (socket.readyState == 3){
+            if (socket.readyState == 3){ // CLOSED
               createConnection(success);
               rc++;
             }
           }
           if (rc>5){
             clearInterval(rt);
+            if (window){
+              alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+            }
+            else {
+              success(false);
+            }
           }
         }, 10000);
     }
