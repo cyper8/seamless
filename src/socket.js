@@ -1,4 +1,4 @@
-module.exports = function(url,callback){
+module.exports = function(url,Rx){
   var socket,ct,rt,rc=0,ec=0;
   (function createConnection(success){
     socket = new WebSocket(url);
@@ -27,17 +27,7 @@ module.exports = function(url,callback){
       Response(e.data);
     };
     function Response(res){
-      success({
-        data: res,
-        post: socket.send.bind(socket),
-        connection: {
-          disconnect: function(){
-            if(rt)clearInterval(rt);
-            socket.close();
-          },
-          reconnect: socket.close
-        }
-      });
+      success(res);
     }
     if (!rt){// WATCHDOG
       rt=setInterval(
@@ -55,5 +45,12 @@ module.exports = function(url,callback){
           }
         }, 10000);
     }
-  })(callback);
+    return function(d){
+      socket.send(
+        (typeof d !== "string")?
+        JSON.stringify(d):
+        d
+      )
+    };
+  })(Rx);
 };

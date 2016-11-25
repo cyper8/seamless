@@ -1,22 +1,30 @@
-module.exports = function(url,callback){
-  var connect = function (url,data,callback){
+module.exports = function(url,Rx){
+  var timer,rc=0,
+  poller;
+
+  function connect(url,data,Receiver){
     var verb = (!data||data=='')?'GET':'POST';
     var xhr = new XMLHttpRequest();
     xhr.addEventListener("readystatechange", function(e){
       if (this.readyState == 4){
         if (this.status == 200){
-          callback(JSON.stringify(this.response));
+          Receiver(this.response);
         }
         else {
-          console.error(this.status + ': ' +this.response.toString());
+          this.abort();
+          throw Error(this.status + ': ' +this.response.toString());
         }
       }
+    });
+    xhr.addEventListener("error",function(e){
+      this.abort();
+      throw Error(e.type);
     });
     xhr.timeout = 30000;
     xhr.addEventListener("timeout",function(){
       if ((this.readyState > 0) && (this.readyState < 4))
         this.abort();
-      console.error('Request timed out');
+      throw Error("Request timed out!");
     });
   	xhr.responseType = 'json';
     (xhr.executesession = function(){
@@ -24,16 +32,16 @@ module.exports = function(url,callback){
       xhr.send(data | '');
     })();
   };
+
   url = (url.search(/^https?:\/\//i)<0)?
           url.replace(/^[^:]+:/i,"http:"):
           url;
-  var timer,rc=0,
-  poller;
+
   (
-    function createConnection(success){
+    function createConnection(Receiver){
       timer = setInterval(function(){
         try {
-          poller = connect(url,'',Result);
+          poller = connect(url,'',Receiver);
         }
         catch(err) {
           console.error(err);
@@ -43,30 +51,14 @@ module.exports = function(url,callback){
             rc=0;
             poller = null;
             alert("Connection lost. Reconnection constantly failing. Try reloading page.") ||
-            success(false);
+            Receiver(false);
           }
         }
       }, 3000);
-      function Result(responce){
-        return success({
-          data: responce,
-          post: Post.bind(this),
-          connection: {
-            disconnect: function(){
-              clearInterval(timer);
-              poller = null;
-            },
-            reconnect: function(){
-              clearInterval(timer);
-              poller = null;
-              createConnection(success);
-            }
-          }
-        });
-      }
       function Post(d){
-        connect(url,d,callback);
+        connect(url,(typeof d !== "string")?JSON.stringify(d):d,Receiver);
       }
+      return Post;
     }
-  )(callback);
+  )(Rx);
 };

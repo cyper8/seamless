@@ -1,127 +1,93 @@
 /* global URL, Blob, Worker */
 //var getWorkerCode = require("worker.js");
 var storage = require("./storage.js")(),
-    md5 = require("./md5.js")();
-  
-function setData(r,d){
-  var m=md5,s=storage;
-  var rh = r; //current route hash
-  var dh = m(d); //new data hash
-  var cd = s.getItem(rh); //old data hash
-  if (cd == null){  //no data for route
-    s.setItem(rh,dh);
-    s.setItem(dh,d);
-  }
-  else if (cd == dh) return cd; //data not changed
-  else {                          //
-    s.removeItem(cd);       //rm old data
-    s.setItem(rh,dh);       //correct pointer
-    s.setItem(dh,d);        //correct data
-  }
-  return dh;            // return data hash
-}
-function processResponse(rh,r,callback){
-  var dh;
-  dh = setData(rh,r.data)
-  callback(window.Seamless[rh] = Object.defineProperties(
-    {
-      connection: r.connection
-    },
-    {
-      route: {
-        value: rh
-      },
-      hash: {
-        value: dh
-      },
-      data:{
-        get: function(){
-          return JSON.parse(storage.getItem(this.hash));
-        },
-        set: function(d){
-          var data = (typeof d !== "string")?
-            (JSON.stringify(d)):
-            d;
-          r.post(data);
-        }
-      },
-    }
-  ));
-}
-  
-window.Seamless = {
-  storage: storage,
-  getByRoute:function(url){
-    return this[md5(url)];
-  },
-  connect:function(endpoint,callback){
-    var rh = md5(endpoint);
-    
-    if (this[rh]) {
-      callback(this[rh]);
-    }
-    else {
-      var dh;
-      if ((dh=storage.getItem(rh)) !== null){
-        callback(this[rh]={
-          route: rh,
-          hash: dh,
-          get data(){
-            return JSON.parse(storage.getItem(this.hash));
-          },
-          set data(v){
+    md5 = require("./md5.js")(),
+    sync = require("./sync.js"),
+    Seamless;
 
-          },
-          connection: {
-            disconnect:function(){
-              delete window.Seamless[this.route];
-            }
-          }
-        });
-      }
-      if (Worker) {
-        var worker;
-        (function createConnection(success){
-          worker = new Worker(
-            URL.createObjectURL(
-              new Blob(require("./worker.js").code(endpoint))
-            )
-          );
-          worker.onerror = function(e){
-            worker.terminate();
-            console.error(e);
-          };
-          worker.onmessage = function(e){
-            if (e.data != "false") {
-              processResponse(rh,{
-                data: e.data,
-                post: worker.postMessage.bind(worker),
-                connection: {
-                  disconnect: worker.terminate,
-                  reconnect: function(){
-                    worker.terminate();
-                    createConnection(success);
-                  }
-                }
-              },success);
-            }
-            else {
-              alert("Connection lost. Reconnection constantly failing. Try reloading page.");
-            }
-          };
-        })(callback);
+Seamless = {
+  connection(url){
+    return connections[md5(url)] || false;
+  },
+  connect(url){ // connection object closure
+    var rh = md5(url), dh, ToServer, connection, buffer;
+
+    function handle(data,to){
+      var d,odh=storage.getItem(rh);
+      if (typeof data !== "string"){
+        try {
+          d=JSON.stringify(data);
+        }
+        catch(err){
+          throw err;
+        }
       }
       else {
-        (function(url,success){
+        try{
+          d=data;
+          data=JSON.parse(d);
+        }
+        catch(err){
+          throw err;
+        }
+      }
+      if (!buffer){
+        buffer=data;
+      }
+      var dh=md5(d);
+      if (odh !== dh){
+        buffer=data;
+        storage.removeItem(odh);
+        storage.setItem(dh,d);
+        storage.setItem(rh,dh);
+        to(buffer);
+      }
+    }
+
+    function Transmit(data){
+      handle(data,ToServer);
+    }
+
+    function ToDOM(data){
+      connection.clients.forEach(function(e,i,a){
+        e.seamless.sync(data);
+      });
+    }
+
+    function createConnection(Rx){ // takes data handling callback
+                            //returns function which to be used as Transmitter
+
+      if (Worker){
+        worker = new Worker(
+          URL.createObjectURL(
+            new Blob(require("./worker.js").code(url))
+          )
+        );
+        worker.onerror = function(e){
+          worker.terminate();
+          console.error(e);
+        };
+        worker.onmessage = function(e){
+          if (e.data != "false") {
+            handle(e.data,Rx);
+          }
+          else {
+            alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+          }
+        };
+        return worker.postMessage;
+      }
+      else {
+        (function(success){
           if (!(url.search(/^wss?:\/\//i)<0) && WebSocket){
-            require("./socket.js")(url,success);
+            return require("./socket.js")(url,success);
           }
           else{
-            require("./poller.js")(url,success);
+            return require("./poller.js")(url,success);
           }
-        })(endpoint,function(res){
-          if (res){
-            processResponse(rh,res,callback);
+        })(function(args){
+          if (args && args != "false"){
+            handle(args,Rx);
           }
           else {
             alert("Connection lost. Reconnection constantly failing. Try reloading page.");
@@ -129,9 +95,64 @@ window.Seamless = {
         });
       }
     }
+
+    ToServer = createConnection(ToDOM);
+
+    function AddClient(elem){
+      elem.addEventListener("seamlessdatachange", function(e){
+        e.stopPropagation();
+        // get data together and send via Transmit
+      })
+      return elem;
+    }
+
+    connection = {
+      url: url,
+      hashes:{
+        url: rh,
+        get data(){
+          return storage.getItem(connection.hashes.url);
+        }
+      },
+      get data(){
+        return buffer;
+      },
+      clients: [],
+      bindClients(elems){
+        if (buffer){
+          elems.forEach(function(e,i,a){
+            var elem = AddClient(e);
+            if (elem){
+              connection.clients.push(elem);
+            }
+          })
+        }
+        else {
+          return Promise()
+        }
+      },
+      unbindClients(elems){
+
+      }
+    };
+
+    if (dh=storage.getItem(rh)){
+      var b;
+      if (b=storage.getItem(dh)){
+        try{
+          buffer=JSON.parse(b);
+        }
+        catch(err){
+          throw err;
+        }
+      }
+    }
+
+    return connection;
   },
-  disconnect:function(endpoint){
-    window.Seamless[md5(endpoint)].connection.disconnect();
-    delete window.Seamless[md5(endpoint)];
-  }
-};
+  disconnect(url){
+    connection(url).unbindClients();
+    delete connection(url);
+  },
+  connections: {},
+}
