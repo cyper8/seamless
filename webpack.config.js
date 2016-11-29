@@ -8,15 +8,15 @@ module.exports = {
     filename: 'seamless.bundle.js',
     sourceMapFilename: '[file].map'
   },
-  devtool: '#source-map',
-  plugins: [
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: true,
-      },
-      output: {
-        comments: false,
-      },
-    }),
-  ]
+  devtool: '#source-map'//,
+  // plugins: [
+  //   new webpack.optimize.UglifyJsPlugin({
+  //     compress: {
+  //       warnings: true,
+  //     },
+  //     output: {
+  //       comments: false,
+  //     },
+  //   }),
+  // ]
 };
