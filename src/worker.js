@@ -11,16 +11,15 @@ function workerFunction(url){
   };
   function respHandler(res){
     if (res){
-      sendToServer = res.post;
-      postMessage(res.data);
+      postMessage(res);
     }
     else {postMessage("false")};
   }
   if (!(url.search(/^wss?:\/\//i)<0) && WebSocket){
-    require("./socket.js")(url,respHandler);
+    sendToServer = require("./socket.js")(url,respHandler);
   }
   else{
-    require("./poller.js")(url,respHandler);
+    sendToServer = require("./poller.js")(url,respHandler);
   }
 };
 
@@ -30,7 +29,7 @@ module.exports.code = function(url){
   var m;
   while((m = re.exec(code)) !== null){
     if (m.index === re.lastIndex) re.lastIndex++;
-    
+
     var p = code.split(m[0]);
     var i = eval(m[0]+".toString()");
     code = p.join("("+i+")");
