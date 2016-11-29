@@ -10,7 +10,7 @@ function element(desc){
 }
 
 module.exports = function seamlessSync(data,root,send){
-  var incoming={};
+  var incoming={},base={};
 
   if (typeof data !== "object"){
     throw new TypeError("Wrong argument data type!");
@@ -38,24 +38,24 @@ module.exports = function seamlessSync(data,root,send){
     return r;
   }
 
-  function createKey(k,v,i,e){
-    switch(typeof v){
+  function createKey(k,d,i,b,e){
+    switch(typeof d[k]){
       case "number":
       case "string":
         var is=function(a){
-          if (v != a){
-            v=a;
+          if (b[k] != a){
+            b[k]=a;
             e.forEach(function(e,idx,ar){
-              if (e.value) e.value=a;
+              if (/input/i.test(e.tagName)) e.value=a;
               else e.innerText=a;
             });
           }
         }
         var os=function(a){
-          if (v != a){
-            v=a;
+          if (d[k] != a){
+            d[k]=a;
             e.forEach(function(e,idx,ar){
-              if (e.value) e.value=a;
+              if (/input/i.test(e.tagName)) e.value=a;
               else e.innerText=a;
             });
             var evt=new CustomEvent("seamlessdatachange",{bubbles:true,detail:data});
@@ -63,15 +63,16 @@ module.exports = function seamlessSync(data,root,send){
           }
         }
         var ig=function(){
-          return v;
+          return b;
         }
-        i=Object.defineProperty({},k,{
+        Object.defineProperty(i,k,{
           get: ig,
-          set: is
+          set: is,
+          enumerable: true
         });
         // id[k]=v;
         e.forEach(function(e,idx,ar){
-          if (e.value){
+          if (/input/i.test(e.tagName)){
             function LocalChange(e){
               if (e.target == this){
                 os(this.value);
@@ -80,46 +81,44 @@ module.exports = function seamlessSync(data,root,send){
             e.addEventListener("change",LocalChange);
             e.removeSeamlessCallback=function(){
               e.removeEventListener("change",LocalChange);
-              delete LocalChange;
-            }
+            };
           }
-        })
+        });
         break;
       case "object":
         i[k]={};
-        for (n in v){
-          createKey(n,v[n],i[k],getEls(e,n));
+        for (n in d[k]){
+          createKey(n,d[k],i[k],b[k],getEls(e,n));
         }
         break;
       default:
     }
   }
 
-  function syncD(k,v,i,e){
+  function syncD(k,d,i,b,e){
     if (!i[k]){
-      createKey(k,v,i,e);
+      createKey(k,d,i,b,e);
     }
-    switch(typeof v){
+    switch(typeof d[k]){
       case "number":
       case "string":
-        if (v != i[k]){
-          i[k]=v;
-        }
+        i[k]=d[k];
         break;
       case "object":
-        for (n in v){
-          syncD(n,v[n],i[n],getEls(e,n));
+        for (n in d[k]){
+          syncD(n,d[k],i[n],b[n],getEls(e,n));
         }
         break;
       default:
     }
   }
 
-  (function sync(d){
+  function sync(d){
     for (k in d){
-      syncD(k,d[k],incoming,[root]);
+      syncD(k,d,incoming,base,getEls(root,k));
     }
-  })(data);
+  }
+  sync(data);
 
   root.seamless = sync;
   root.deseamless = function(){
@@ -133,11 +132,10 @@ module.exports = function seamlessSync(data,root,send){
       }
     })(root);
     root.removeEventListener("seamlessdatachange",CastChanges);
-    delete CastChanges;
     delete root.seamless;
     incoming = {};
     delete root.deseamless;
-  }
+  };
 
   return root;
-}
+};

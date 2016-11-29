@@ -15,7 +15,7 @@ function workerFunction(url){
     }
     else {postMessage("false")};
   }
-  if (!(url.search(/^wss?:\/\//i)<0) && WebSocket){
+  if (((/^wss?:\/\//i).test(url)) && WebSocket){
     sendToServer = require("./socket.js")(url,respHandler);
   }
   else{
