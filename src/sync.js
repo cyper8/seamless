@@ -1,5 +1,5 @@
 function element(desc){
-    var type = desc||"".match(/^[a-z][a-z0-9]*/i)[0];
+    var type = (desc||"").match(/^[a-z][a-z0-9]*/i);
     var classes = desc.match(/\.([a-z][a-z0-9]*)/ig) || [];
     var id = desc.match(/\#([a-z][a-z0-9]*)/i) || [];
     if (type=="") return null;
@@ -26,12 +26,12 @@ module.exports = function seamlessSync(data,root,send){
   function getEls(el,id){
     var r=[];
     if (!el.length) el=[el];
-    for (i in el){
+    for (var i=0;i<el.length;i++){
       var e=el[i].querySelectorAll("#"+id);
       if (e.length==0){
-        e.push(el[i].appendChild(element("div#"+id)));
+        (e=[]).push(el[i].appendChild(element("div#"+id)));
       }
-      for (j in e){
+      for (var j=0;j<e.length;j++){
         r.push(e[j]);
       }
     }
@@ -87,6 +87,7 @@ module.exports = function seamlessSync(data,root,send){
         break;
       case "object":
         i[k]={};
+        b[k]={};
         for (n in d[k]){
           createKey(n,d[k],i[k],b[k],getEls(e,n));
         }
@@ -106,7 +107,7 @@ module.exports = function seamlessSync(data,root,send){
         break;
       case "object":
         for (n in d[k]){
-          syncD(n,d[k],i[n],b[n],getEls(e,n));
+          syncD(n,d[k],i[k],b[k],getEls(e,n));
         }
         break;
       default:

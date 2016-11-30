@@ -83,15 +83,16 @@ Window.Seamless={
             )
           );
           worker.onerror = function(e){
-            worker.terminate();
-            console.error(e);
+            //worker.terminate();
+            error(e);
           };
           worker.onmessage = function(e){
             if (e.data != "false") {
-              handle(e.data,success);
+              success(e.data);
             }
             else {
               alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+              error(new Error("Connection lost"));
             }
           };
           transmitter = function(msg){
@@ -108,10 +109,11 @@ Window.Seamless={
             }
           })(function(args){
             if (args && args != "false"){
-              handle(args,success);
+              success(args);
             }
             else {
               alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+              error(new Error("Connection lost"));
             }
           });
         }
@@ -120,7 +122,9 @@ Window.Seamless={
           handle(data,transmitter);
         };
       })
-      .then(ToDOM)
+      .then(function(res){
+        handle(res,ToDOM);
+      })
       .catch(function(err){
         throw err;
       });

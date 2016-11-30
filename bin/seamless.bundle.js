@@ -129,15 +129,16 @@
 	            )
 	          );
 	          worker.onerror = function(e){
-	            worker.terminate();
-	            console.error(e);
+	            //worker.terminate();
+	            error(e);
 	          };
 	          worker.onmessage = function(e){
 	            if (e.data != "false") {
-	              handle(e.data,success);
+	              success(e.data);
 	            }
 	            else {
 	              alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+	              error(new Error("Connection lost"));
 	            }
 	          };
 	          transmitter = function(msg){
@@ -154,10 +155,11 @@
 	            }
 	          })(function(args){
 	            if (args && args != "false"){
-	              handle(args,success);
+	              success(args);
 	            }
 	            else {
 	              alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+	              error(new Error("Connection lost"));
 	            }
 	          });
 	        }
@@ -166,7 +168,9 @@
 	          handle(data,transmitter);
 	        };
 	      })
-	      .then(ToDOM)
+	      .then(function(res){
+	        handle(res,ToDOM);
+	      })
 	      .catch(function(err){
 	        throw err;
 	      });
@@ -427,7 +431,7 @@
 /***/ function(module, exports) {
 
 	function element(desc){
-	    var type = desc||"".match(/^[a-z][a-z0-9]*/i)[0];
+	    var type = (desc||"").match(/^[a-z][a-z0-9]*/i);
 	    var classes = desc.match(/\.([a-z][a-z0-9]*)/ig) || [];
 	    var id = desc.match(/\#([a-z][a-z0-9]*)/i) || [];
 	    if (type=="") return null;
@@ -454,12 +458,12 @@
 	  function getEls(el,id){
 	    var r=[];
 	    if (!el.length) el=[el];
-	    for (i in el){
+	    for (var i=0;i<el.length;i++){
 	      var e=el[i].querySelectorAll("#"+id);
 	      if (e.length==0){
-	        e.push(el[i].appendChild(element("div#"+id)));
+	        (e=[]).push(el[i].appendChild(element("div#"+id)));
 	      }
-	      for (j in e){
+	      for (var j=0;j<e.length;j++){
 	        r.push(e[j]);
 	      }
 	    }
@@ -515,6 +519,7 @@
 	        break;
 	      case "object":
 	        i[k]={};
+	        b[k]={};
 	        for (n in d[k]){
 	          createKey(n,d[k],i[k],b[k],getEls(e,n));
 	        }
@@ -534,7 +539,7 @@
 	        break;
 	      case "object":
 	        for (n in d[k]){
-	          syncD(n,d[k],i[n],b[n],getEls(e,n));
+	          syncD(n,d[k],i[k],b[k],getEls(e,n));
 	        }
 	        break;
 	      default:
@@ -618,8 +623,8 @@
 /***/ function(module, exports) {
 
 	module.exports = function(url,Rx){
-	  var socket,ct,rt,rc=0,ec=0;
-	  (function createConnection(success){
+	  var socket,ct,rt,rc=0,ec=0,Tx;
+	  Tx=(function createConnection(success){
 	    socket = new WebSocket(url);
 	    ct=setTimeout(socket.close,9000);
 	    console.log("New connection to "+url);
@@ -653,7 +658,7 @@
 	        function(){
 	          if (socket){
 	            if (socket.readyState == 3){ // CLOSED
-	              createConnection(success);
+	              Tx=createConnection(success);
 	              rc++;
 	            }
 	          }
@@ -672,6 +677,7 @@
 	      )
 	    };
 	  })(Rx);
+	  return Tx;
 	};
 
 
@@ -712,6 +718,7 @@
 	      xhr.open(verb,encodeURI(url),true);
 	      xhr.send(data | '');
 	    })();
+	    return xhr;
 	  };
 	
 	  url = (url.search(/^https?:\/\//i)<0)?
@@ -730,18 +737,18 @@
 	          if (rc>5){
 	            clearTimeout(timer);
 	            rc=0;
-	            poller = null;
+	            poller.abort();
 	            alert("Connection lost. Reconnection constantly failing. Try reloading page.") ||
 	            Receiver(false);
 	          }
 	        }
-	      }, 3000);
-	      function Post(d){
-	        connect(url,(typeof d !== "string")?JSON.stringify(d):d,Receiver);
-	      }
-	      return Post;
+	      }, 5000);
 	    }
 	  )(Rx);
+	  function Post(d){
+	    connect(url,(typeof d !== "string")?JSON.stringify(d):d,Rx);
+	  }
+	  return Post;
 	};
 
 

@@ -1,6 +1,9 @@
 
 var data = {
-  test1: "foo",
+  test1: {
+    test11:"foo",
+    test3:"bar"
+  },
   test2: 123,
   test3: "bar"
 };

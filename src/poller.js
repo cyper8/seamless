@@ -31,6 +31,7 @@ module.exports = function(url,Rx){
       xhr.open(verb,encodeURI(url),true);
       xhr.send(data | '');
     })();
+    return xhr;
   };
 
   url = (url.search(/^https?:\/\//i)<0)?
@@ -49,16 +50,16 @@ module.exports = function(url,Rx){
           if (rc>5){
             clearTimeout(timer);
             rc=0;
-            poller = null;
+            poller.abort();
             alert("Connection lost. Reconnection constantly failing. Try reloading page.") ||
             Receiver(false);
           }
         }
-      }, 3000);
-      function Post(d){
-        connect(url,(typeof d !== "string")?JSON.stringify(d):d,Receiver);
-      }
-      return Post;
+      }, 5000);
     }
   )(Rx);
+  function Post(d){
+    connect(url,(typeof d !== "string")?JSON.stringify(d):d,Rx);
+  }
+  return Post;
 };

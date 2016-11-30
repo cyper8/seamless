@@ -1,6 +1,6 @@
 module.exports = function(url,Rx){
-  var socket,ct,rt,rc=0,ec=0;
-  (function createConnection(success){
+  var socket,ct,rt,rc=0,ec=0,Tx;
+  Tx=(function createConnection(success){
     socket = new WebSocket(url);
     ct=setTimeout(socket.close,9000);
     console.log("New connection to "+url);
@@ -34,7 +34,7 @@ module.exports = function(url,Rx){
         function(){
           if (socket){
             if (socket.readyState == 3){ // CLOSED
-              createConnection(success);
+              Tx=createConnection(success);
               rc++;
             }
           }
@@ -53,4 +53,5 @@ module.exports = function(url,Rx){
       )
     };
   })(Rx);
+  return Tx;
 };
