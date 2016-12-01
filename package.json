@@ -2,7 +2,7 @@
   "author": "Anton Yashchuk <anton.yashchuk@gmail.com>",
   "name": "seamless",
   "description": "seamlessly (and asyncronously) work with remote objects",
-  "version": "0.0.1-beta",
+  "version": "0.0.2-alpha",
   "license": "MIT",
   "repository": {
     "type": "git",
