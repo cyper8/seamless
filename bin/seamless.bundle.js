@@ -100,7 +100,9 @@
 	        to(buffer);
 	      }
 	    }
-	
+	    function Receive(res){
+	      handle(res,ToDOM);
+	    }
 	    function ToDOM(data){
 	      connection.clients.forEach(function(e,i,a){
 	        if (e.seamless) e.seamless(data);
@@ -134,7 +136,8 @@
 	          };
 	          worker.onmessage = function(e){
 	            if (e.data != "false") {
-	              success(e.data);
+	              Receive(e.data);
+	              success(connection);
 	            }
 	            else {
 	              alert("Connection lost. Reconnection constantly failing. Try reloading page.");
@@ -155,7 +158,8 @@
 	            }
 	          })(function(args){
 	            if (args && args != "false"){
-	              success(args);
+	              Receive(args);
+	              success(connection);
 	            }
 	            else {
 	              alert("Connection lost. Reconnection constantly failing. Try reloading page.");
@@ -167,12 +171,6 @@
 	        Transmit=function (data){
 	          handle(data,transmitter);
 	        };
-	      })
-	      .then(function(res){
-	        handle(res,ToDOM);
-	      })
-	      .catch(function(err){
-	        throw err;
 	      });
 	      connection={
 	        url: url,
@@ -188,7 +186,7 @@
 	        clients: [],
 	        bindClients: function(elems){
 	          if (!(elems instanceof Array)) elems=[elems];
-	          connection.clients.concat(elems);
+	          connection.clients=connection.clients.concat(elems);
 	          elems.forEach(function(e,i,a){
 	            var e = e;
 	            if (buffer){
@@ -212,8 +210,8 @@
 	              var e = connection.clients.splice(index,1);
 	              if (e.deseamless) e.deseamless();
 	              else {
-	                e.connecting.then(function(element){
-	                  element.deseamless();
+	                e.connecting.then(function(){
+	                  e.deseamless();
 	                })
 	                .catch(function(err){
 	                  throw err;
