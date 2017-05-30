@@ -3,6 +3,7 @@
 
 
 module.exports = function(){
+  
   function storageAvailable(type) {
   	try {
   		var storage = window[type],
@@ -15,6 +16,7 @@ module.exports = function(){
   		return false;
   	}
   }
+  
   if (storageAvailable('localStorage')){
     return window.localStorage;
   }
@@ -73,4 +75,5 @@ module.exports = function(){
       }
     });
   }
+  
 };

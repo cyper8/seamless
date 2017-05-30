@@ -8,25 +8,31 @@
     "type": "git",
     "url": "git://github.com/cyper8/seamless.git"
   },
-  "main": "seamless.js",
+  "main": "bin/seamless.min.js",
+  "module": "src/seamless.js",
   "dependencies": {
-    "express": "4.14.0",
-    "body-parser": "1.15.2",
-    "helmet": "2.3.0",
-    "express-ws": "2.0.0"
+    "body-parser": "^1.15.2",
+    "express": "^4.14.0",
+    "express-ws": "^2.0.0",
+    "helmet": "^2.3.0"
   },
   "devDependencies": {
-    "mocha": "3.1.2",
-    "chai": "3.5.0",
-    "webpack": "1.13.3",
-    "karma": "1.3.0",
-    "karma-webpack": "1.8.0",
-    "karma-chai": "0.1.0",
-    "karma-chrome-launcher": "2.0.0",
-    "karma-mocha": "1.2.0"
+    "jasmine": "^2.6.0",
+    "karma": "^1.7.0",
+    "karma-chrome-launcher": "^2.1.1",
+    "karma-firefox-launcher": "^1.0.1",
+    "karma-jasmine": "^1.1.0",
+    "karma-phantomjs-launcher": "^1.0.4",
+    "karma-webpack": "^2.0.3",
+    "phantomjs-prebuilt": "^2.1.14",
+    "promise-polyfill": "^6.0.2",
+    "uglifyjs-webpack-plugin": "^0.4.3",
+    "webpack": "^2.6.1"
   },
   "scripts": {
     "build": "webpack",
-    "karma": "./node_modules/karma/bin/karma start ./karma.local.conf.js"
+    "release": "NODE_ENV=production webpack",
+    "test": "karma start --single-run",
+    "test-server": "karma start"
   }
 }

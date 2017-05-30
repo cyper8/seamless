@@ -4,7 +4,7 @@ module.exports = function (url,data,callback){
   var xhr = new XMLHttpRequest();
   xhr.addEventListener("readystatechange", function(e){
     if (this.readyState == 4){
-      if (this.status == 200){
+      if (this.status >= 200 && this.status < 400){
         callback(this.response);
       }
       else {
