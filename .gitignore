@@ -38,3 +38,6 @@ jspm_packages
 
 # Sublime
 package.sublime-workspace
+
+#mongodb auth
+src/dbconf.json
