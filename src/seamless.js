@@ -19,10 +19,10 @@ function getBufferByURLHash(urlhash){
 }
 
 //function getBufferByURL(url){
-  return getBufferByURLHash(md5(url));
-}
+//  return getBufferByURLHash(md5(url));
+//}
 
-module.exports={
+module.exports = window.Seamless = {
   
   compile: function(dom){
     var seamlessElements = dom.querySelectorAll("*[data-seamless]");

@@ -7,66 +7,62 @@ var express = require('express')
   , app = express()
   , expressWs = require("express-ws")(app)
   , dbconfig = require('./dbconf.json')
-  , mongoose = require('mongoose');
+  , mongoose = require('mongoose')
+  , seamlessMongoose = require("./seamless-mongoose-plugin.js");
 
-mongoose.connect('mongodb://'+dbconfig.username+':'+dbconfig.password+'@ds157631.mlab.com:57631/seamless-test')
+mongoose.connect('mongodb://'+dbconfig.username+':'+dbconfig.password+'@'+dbconfig.url)
   .catch(function(err){throw err});
   
-var Schema = mongoose.Schema;
-var TestSchema = new Schema({
+mongoose.plugin(seamlessMongoose);
+
+
+const schema = {
   type: String,
   count: Number,
   hoverable: Boolean,
   message: String,
   addresee: String
-});
-TestSchema.index({addresee:1,type:1});
+};
 
-TestSchema.post('save',function(doc){
-  
-})
+const index = {addresee:1,type:1};
 
+var buffer,clients,changed=true;
+
+var Schema = mongoose.Schema;
+var TestSchema = new Schema(schema);
+TestSchema.index(index);
 
 var TestModel = mongoose.model('TestModel',TestSchema);
-
-function TestData(){
-  var buffer,flag;
-  function setData(data){
-    
-  }
-  function getData(){
-    
-  }
-  return {
-    setData,
-    getData
-  }
-}
-
-var Test = TestData();
 
 app.use(require("helmet")());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.get('/test', jsonParser, function (req, res) {
-  res.send(Test.getData());
-});
-app.post('/test', jsonParser, function(req, res){
-  if (!req.body) res.sendStatus(400);
-  else res.json(Test.setData(req.body));
+
+app.get('/test/:id', jsonParser, function (req, res) {
+  TestModel.seamlesGetData(req.params.id,res);
 });
 
-app.ws('/test', function(ws, req){
-  var location = url.parse(ws.upgradeReq.url, true);
+app.post('/test/:id', jsonParser, function(req, res){
+  if (!req.body) res.status(400).send('Not a valid JSON');
+  else {
+    req.body._id = req.params.id;
+    TestModel.seamlessSetData(req.params.id,req.body,res);
+  }
+});
+
+app.ws('/test/:id', function(ws, req){
+  //var location = url.parse(ws.upgradeReq.url, true);
+  seamlessMongoose.registerClient(req.params.id,ws);
   ws.on('message', function incoming(message,flags) {
     if (!flags.binary){
-      ws.send(Test.setData(message));
+      TestModel.seamlessSetData(req.params.id,message,ws);
     }
   });
-  ws.send(Test.getData());
 });
 
 app.use(express.static('../tests/',{maxAge:1000}));
 app.use(express.static('../bin/',{maxAge:1000}));
 
-app.listen(process.env.PORT, process.env.IP, function () { console.log('Listening on ' + process.env.PORT) });
+app.listen(process.env.PORT, process.env.IP, function () {
+  console.log('Listening on ' + process.env.PORT)
+});

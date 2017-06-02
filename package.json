@@ -8,7 +8,7 @@
     "type": "git",
     "url": "git://github.com/cyper8/seamless.git"
   },
-  "main": "bin/seamless.min.js",
+  "main": "bin/seamless-client.min.js",
   "module": "src/seamless.js",
   "dependencies": {
     "body-parser": "^1.15.2",
