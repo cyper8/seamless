@@ -144,7 +144,7 @@ module.exports = window.Seamless = {
       };
     });
     
-    return this.connections[rh]={
+    return this.connections[rh]=connection={
       url: url,
       hashes:{
         url: rh,
@@ -161,12 +161,13 @@ module.exports = window.Seamless = {
         elems.forEach(function(e,i,a){
           e.connecting=InitConnection.then(function(){
             if (e instanceof HTMLElement) {
-              if (e.dataset.sync && (typeof e.dataset.sync === "function")){
-                e.seamless= e.dataset.sync;
+              if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")){
+                e.seamless= window[e.dataset.sync].bind(e);
                 e.deseamless= function(){
                   e.removeAttribute("data-sync");
                   delete this.seamless;
                 };
+                e.seamless(buffer,Transmit);
               }
               else sync(buffer,e,Transmit);
             }
@@ -220,8 +221,3 @@ module.exports = window.Seamless = {
   
   connections: {},
 };
-
-
-window.addEventListener("load",function(){
-  Window.Seamless.compile(document.body);
-});

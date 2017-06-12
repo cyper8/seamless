@@ -351,7 +351,7 @@ module.exports = window.Seamless = {
       };
     });
     
-    return this.connections[rh]={
+    return this.connections[rh]=connection={
       url: url,
       hashes:{
         url: rh,
@@ -368,12 +368,13 @@ module.exports = window.Seamless = {
         elems.forEach(function(e,i,a){
           e.connecting=InitConnection.then(function(){
             if (e instanceof HTMLElement) {
-              if (e.dataset.sync && (typeof e.dataset.sync === "function")){
-                e.seamless= e.dataset.sync;
+              if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")){
+                e.seamless= window[e.dataset.sync].bind(e);
                 e.deseamless= function(){
                   e.removeAttribute("data-sync");
                   delete this.seamless;
                 };
+                e.seamless(buffer,Transmit);
               }
               else sync(buffer,e,Transmit);
             }
@@ -428,10 +429,6 @@ module.exports = window.Seamless = {
   connections: {},
 };
 
-
-window.addEventListener("load",function(){
-  Window.Seamless.compile(document.body);
-});
 
 /***/ }),
 /* 3 */
@@ -669,6 +666,11 @@ module.exports = function seamlessSync(data,root,send){
 
   function createKey(k,d,i,b,e){
     switch(typeof d[k]){
+      case "boolean":
+        e.forEach(function(el){
+          el.setAttribute(k,d[k]);
+        });
+        break;
       case "number":
       case "string":
         var is=function(a){
@@ -730,6 +732,10 @@ module.exports = function seamlessSync(data,root,send){
       createKey(k,d,i,b,e);
     }
     switch(typeof d[k]){
+      case "boolean":
+        e.forEach(function(el){
+          el.setAttribute(k,d[k]);
+        })
       case "number":
       case "string":
         i[k]=d[k];

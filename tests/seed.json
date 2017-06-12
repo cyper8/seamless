@@ -1,0 +1,28 @@
+[{
+  "type": "greeting",
+  "count": 1,
+  "hoverable": false,
+  "message": "Hello!",
+  "addresee": "Bob"
+},
+{
+  "type": "introduction",
+  "count": 1,
+  "hoverable": true,
+  "message": "I'm Seamless",
+  "addresee": "Bob"
+},
+{
+  "type": "message",
+  "count": 3,
+  "hoverable": true,
+  "message": "I've been waiting for you",
+  "addresee": "Bob"
+},
+{
+  "type": "writeoff",
+  "count": 1,
+  "hoverable": false,
+  "message": "So long!",
+  "addresee": "Bob"
+}]

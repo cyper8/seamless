@@ -40,6 +40,11 @@ module.exports = function seamlessSync(data,root,send){
 
   function createKey(k,d,i,b,e){
     switch(typeof d[k]){
+      case "boolean":
+        e.forEach(function(el){
+          el.setAttribute(k,d[k]);
+        });
+        break;
       case "number":
       case "string":
         var is=function(a){
@@ -101,6 +106,10 @@ module.exports = function seamlessSync(data,root,send){
       createKey(k,d,i,b,e);
     }
     switch(typeof d[k]){
+      case "boolean":
+        e.forEach(function(el){
+          el.setAttribute(k,d[k]);
+        })
       case "number":
       case "string":
         i[k]=d[k];

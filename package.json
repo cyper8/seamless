@@ -18,6 +18,7 @@
     "mongoose": "^4.10.4"
   },
   "devDependencies": {
+    "copy-webpack-plugin": "^4.0.1",
     "jasmine": "^2.6.0",
     "karma": "^1.7.0",
     "karma-chrome-launcher": "^2.1.1",
