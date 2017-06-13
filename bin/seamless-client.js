@@ -64,75 +64,77 @@ var Seamless =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 7);
+/******/ 	return __webpack_require__(__webpack_require__.s = 8);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
 /***/ (function(module, exports) {
 
-module.exports = function(url,Rx){
-  var timer,rc=0,
-  poller;
+module.exports = function(url, Rx) {
+  var timer, rc = 0,
+    poller;
 
-  function connect(url,data,Receiver){
-    var verb = (!data||data=='')?'GET':'POST';
+  function connect(url, data, Receiver) {
+    var verb = (!data || data == '') ? 'GET' : 'POST';
     var xhr = new XMLHttpRequest();
-    xhr.addEventListener("readystatechange", function(e){
-      if (this.readyState == 4){
-        if (this.status == 200){
+    xhr.addEventListener("readystatechange", function(e) {
+      if (this.readyState == 4) {
+        if (this.status == 200) {
           Receiver(this.response);
         }
         else {
           this.abort();
-          throw Error(this.status + ': ' +this.response.toString());
+          console.error(this.status + ': Request Error');
         }
       }
     });
-    xhr.addEventListener("error",function(e){
+    xhr.addEventListener("error", function(e) {
       this.abort();
       throw Error(e.type);
     });
     xhr.timeout = 30000;
-    xhr.addEventListener("timeout",function(){
+    xhr.addEventListener("timeout", function() {
       if ((this.readyState > 0) && (this.readyState < 4))
         this.abort();
       throw Error("Request timed out!");
     });
-  	xhr.responseType = 'json';
-    (xhr.executesession = function(){
-      xhr.open(verb,encodeURI(url),true);
-      xhr.send(data | '');
+    xhr.responseType = 'json';
+    (xhr.executesession = function() {
+      xhr.open(verb, encodeURI(url), true);
+      if (verb == 'POST') xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(data || '');
     })();
     return xhr;
   };
 
-  url = (url.search(/^https?:\/\//i)<0)?
-          url.replace(/^[^:]+:/i,"http:"):
-          url;
+  url = (url.search(/^https?:\/\//i) < 0) ?
+    url.replace(/^[^:]+:/i, "http:") :
+    url;
 
   (
-    function createConnection(Receiver){
-      timer = setInterval(function(){
+    function createConnection(Receiver) {
+      timer = setInterval(function() {
         try {
-          poller = connect(url,'',Receiver);
+          poller = connect(url, '', Receiver);
         }
-        catch(err) {
+        catch (err) {
           console.error(err);
           rc++;
-          if (rc>5){
+          if (rc > 5) {
             clearTimeout(timer);
-            rc=0;
+            rc = 0;
             poller.abort();
             alert("Connection lost. Reconnection constantly failing. Try reloading page.") ||
-            Receiver(false);
+              Receiver(false);
           }
         }
       }, 5000);
     }
   )(Rx);
-  function Post(d){
-    connect(url,(typeof d !== "string")?JSON.stringify(d):d,Rx);
+
+  function Post(d) {
+    connect(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
   }
   return Post;
 };
@@ -207,8 +209,8 @@ module.exports = function(url,Rx){
 
 /* global URL, Blob, Worker, HTMLElement */
 //var getWorkerCode = require("worker.js");
-var storage = __webpack_require__(4)(),
-    md5 = __webpack_require__(3)(),
+var storage = __webpack_require__(6)(),
+    md5 = __webpack_require__(4)(),
     sync = __webpack_require__(5);
 
 function getBufferByURLHash(urlhash){
@@ -246,52 +248,9 @@ module.exports = window.Seamless = {
   connect: function(url){ // connection object closure
   
     var rh = md5(url),
-      Transmit,
       connection,
       buffer,
       InitConnection;
-
-    function handle(data,to){
-      var d,odh=storage.getItem(rh);
-      if (typeof data !== "string"){
-        try {
-          d=JSON.stringify(data);
-        }
-        catch(err){
-          throw err;
-        }
-      }
-      else {
-        try{
-          d=data;
-          data=JSON.parse(d);
-        }
-        catch(err){
-          throw err;
-        }
-      }
-      if (!buffer){
-        buffer=data;
-      }
-      var dh=md5(d);
-      if (odh !== dh){
-        buffer=data;
-        storage.removeItem(odh);
-        storage.setItem(dh,d);
-        storage.setItem(rh,dh);
-        to(buffer);
-      }
-    }
-    
-    function Receive(res){
-      handle(res,ToDOM);
-    }
-    
-    function ToDOM(data){
-      connection.clients.forEach(function(e,i,a){
-        if (e.seamless) e.seamless(data);
-      });
-    }
 
     if (connection=this.connection(url)) return connection;
     
@@ -300,31 +259,73 @@ module.exports = window.Seamless = {
     buffer=getBufferByURLHash(rh);
     
     InitConnection=new Promise(function(success,error){
-      var transmitter;
+      var transmitter, Transmit, Receive;
+      
+      function bufferedHandle(data,to){
+        var d,odh=storage.getItem(rh);
+        if (typeof data !== "string"){
+          try {
+            d=JSON.stringify(data);
+          }
+          catch(err){
+            throw err;
+          }
+        }
+        else {
+          try{
+            d=data;
+            data=JSON.parse(d);
+          }
+          catch(err){
+            throw err;
+          }
+        }
+        if (!buffer){
+          buffer=data;
+        }
+        var dh=md5(d);
+        if (odh !== dh){
+          buffer=data;
+          storage.removeItem(odh);
+          storage.setItem(dh,d);
+          storage.setItem(rh,dh);
+          to(buffer);
+        }
+      }
+      
+      Receive = function(res){
+        var data = (res.data)?res.data:res;
+        if (data && data != "false"){
+          bufferedHandle(data,ToDOM);
+          success(Transmit);
+        }
+        else {
+          alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+          error(new Error("Connection lost."));
+        }
+      };
+      
+      function ToDOM(data){
+        connection.clients.forEach(function(e,i,a){
+          if (e.seamless) e.seamless(data);
+          else e.status = data;
+        });
+      }
       
       if (Worker){
-        var worker = new Worker(
-          URL.createObjectURL(
-            new Blob(__webpack_require__(6).code(url))
-          )
-        );
-        worker.onerror = function(e){
-          //worker.terminate();
-          error(e);
-        };
-        worker.onmessage = function(e){
-          if (e.data != "false") {
-            Receive(e.data);
-            success(connection);
-          }
-          else {
-            alert("Connection lost. Reconnection constantly failing. Try reloading page.");
-            error(new Error("Connection lost"));
-          }
-        };
-        transmitter = function(msg){
-          worker.postMessage(msg);
-        };
+        transmitter = (function(receiver){
+          var worker = new Worker(
+            URL.createObjectURL(
+              new Blob(__webpack_require__(7).code(url))
+            )
+          );
+          worker.onerror = function(e){
+            //worker.terminate();
+            error(e);
+          };
+          worker.onmessage = receiver;
+          return function(data){worker.postMessage(data)};
+        })(Receive);
       }
       else {
         transmitter = (function(callback){
@@ -334,21 +335,15 @@ module.exports = window.Seamless = {
           else{
             return __webpack_require__(0)(url,callback);
           }
-        })(function(args){
-          if (args && args != "false"){
-            Receive(args);
-            success(connection);
-          }
-          else {
-            alert("Connection lost. Reconnection constantly failing. Try reloading page.");
-            error(new Error("Connection lost"));
-          }
-        });
+        })(Receive);
       }
 
       Transmit=function (data){
-        handle(data,transmitter);
+        bufferedHandle(data,transmitter);
       };
+    })
+    .catch(function(err){
+      console.error(err);
     });
     
     return this.connections[rh]=connection={
@@ -366,23 +361,32 @@ module.exports = window.Seamless = {
       bindClients: function(elems){
         if (!(elems instanceof Array)) elems=[elems];
         elems.forEach(function(e,i,a){
-          e.connecting=InitConnection.then(function(){
+          e.connecting=InitConnection.then(function(transmit){
+            
+            function SeamlessDataChangeEventHandler(evt){
+              transmit(buffer);
+              evt.stopPropagation();
+            }
+            
             if (e instanceof HTMLElement) {
+              e.addEventListener('seamlessdatachange',SeamlessDataChangeEventHandler);
               if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")){
-                e.seamless= window[e.dataset.sync].bind(e);
-                e.deseamless= function(){
-                  e.removeAttribute("data-sync");
-                  delete this.seamless;
-                };
-                e.seamless(buffer,Transmit);
+                e.seamless = window[e.dataset.sync].bind(e);
               }
-              else sync(buffer,e,Transmit);
+              else {
+                e.seamless = sync.bind(e);
+              }
+              e.deseamless = function(){
+                this.removeEventListener('seamlessdatachange',SeamlessDataChangeEventHandler);
+                delete this.seamless;
+              }.bind(e);
+              e.seamless(buffer,transmit);
             }
             else {
               if (typeof e === "object") {
                 //TODO: seamless client-side reciever is a JS object
                 e.__defineGetter__("status",function(){return buffer});
-                e.__defineSetter__("status",Transmit);
+                e.__defineSetter__("status",transmit);
               }
               else if (typeof e === "function") {
                 a[i] = {
@@ -392,6 +396,7 @@ module.exports = window.Seamless = {
                   }
                 }
               }
+              e.status = buffer;
             }
             delete e.connecting;
           })
@@ -432,6 +437,26 @@ module.exports = window.Seamless = {
 
 /***/ }),
 /* 3 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["element"] = element;
+function element(desc){
+    if (!desc) {throw new Error("Wrong argument")};
+    var type = desc.match(/^[a-z][a-z0-9-]*/i);
+    var classes = desc.match(/\.([a-z][a-z0-9_-]*)/ig) || [];
+    var id = desc.match(/\#([a-z][a-z0-9_-]*)/i) || [];
+    var element = document.createElement(type[0]);
+    element.className = ((classes.length>0) ? (classes.join(" ")) : ("")).replace(/\./g,"");
+    element.id = (id.length>0) ? (id[0].replace(/\#/,"")) : ("");
+    return element;
+};
+
+/* harmony default export */ __webpack_exports__["default"] = (element);
+
+/***/ }),
+/* 4 */
 /***/ (function(module, exports) {
 
 module.exports = function() {
@@ -537,7 +562,68 @@ module.exports = function() {
 }
 
 /***/ }),
-/* 4 */
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var elementfactory = __webpack_require__(3).element;
+
+function getElements(id,el){
+  var r=[];
+  if (!el.length) el=[el];
+  for (var i=0;i<el.length;i++){
+    var e=el[i].querySelectorAll("#"+id);
+    if (e.length==0){
+      (e=[]).push(el[i].appendChild(elementfactory("div#"+id)));
+    }
+    for (var j=0;j<e.length;j++){
+      r.push(e[j]);
+    }
+  }
+  return r;
+}
+
+module.exports = function SeamlessSync(data){
+  
+  var key;
+  for (key in data){
+    if ((key == "_id") || (typeof data[key] === "boolean")) {
+      this.setAttribute(key,data[key]);
+    }
+    else {
+      switch(typeof data[key]){
+        case "number":
+        case "string":
+          getElements(key,this).forEach(function(e){
+            if (/input/i.test(e.tagName)) {
+              e.value = data[key];
+              if (!e.onchange) {
+                e.onchange=function(evt){
+                  clearTimeout(this.timeout);
+                  this.timeout = setTimeout(function(){
+                    data[this.id] = this.value;
+                    this.dispatchEvent(
+                      new CustomEvent(
+                        'seamlessdatachange',{bubbles:true}
+                      )
+                    );
+                  }.bind(this),1000);
+                };
+              }
+            }
+            else e.innerText = data[key];
+          });
+          break;
+        case "object":
+          getElements(key,this).forEach(function(e){
+            SeamlessSync.apply(e,data[key]);
+          })
+      }
+    }
+  }
+}
+
+/***/ }),
+/* 6 */
 /***/ (function(module, exports) {
 
 /*  global localStorage, CustomEvent  */
@@ -621,164 +707,7 @@ module.exports = function(){
 };
 
 /***/ }),
-/* 5 */
-/***/ (function(module, exports) {
-
-function element(desc){
-    var type = (desc||"").match(/^[a-z][a-z0-9]*/i);
-    var classes = desc.match(/\.([a-z][a-z0-9]*)/ig) || [];
-    var id = desc.match(/\#([a-z][a-z0-9]*)/i) || [];
-    if (type=="") return null;
-    var element = document.createElement(type[0]);
-    element.className = ((classes.length>0) ? (classes.join(" ")) : ("")).replace(/\./g,"");
-    element.id = (id.length>0) ? (id[0].replace(/\#/,"")) : ("");
-    return element;
-}
-
-module.exports = function seamlessSync(data,root,send){
-  var incoming={},base={};
-
-  if (typeof data !== "object"){
-    throw new TypeError("Wrong argument data type!");
-  }
-
-  function CastChanges(evt){
-    evt.stopPropagation();
-    send(evt.detail);
-  }
-
-  root.addEventListener("seamlessdatachange",CastChanges);
-
-  function getEls(el,id){
-    var r=[];
-    if (!el.length) el=[el];
-    for (var i=0;i<el.length;i++){
-      var e=el[i].querySelectorAll("#"+id);
-      if (e.length==0){
-        (e=[]).push(el[i].appendChild(element("div#"+id)));
-      }
-      for (var j=0;j<e.length;j++){
-        r.push(e[j]);
-      }
-    }
-    return r;
-  }
-
-  function createKey(k,d,i,b,e){
-    switch(typeof d[k]){
-      case "boolean":
-        e.forEach(function(el){
-          el.setAttribute(k,d[k]);
-        });
-        break;
-      case "number":
-      case "string":
-        var is=function(a){
-          if (b[k] != a){
-            b[k]=a;
-            e.forEach(function(e,idx,ar){
-              if (/input/i.test(e.tagName)) e.value=a;
-              else e.innerText=a;
-            });
-          }
-        }
-        var os=function(a){
-          if (d[k] != a){
-            d[k]=a;
-            e.forEach(function(e,idx,ar){
-              if (/input/i.test(e.tagName)) e.value=a;
-              else e.innerText=a;
-            });
-            var evt=new CustomEvent("seamlessdatachange",{bubbles:true,detail:data});
-            root.dispatchEvent(evt);
-          }
-        }
-        var ig=function(){
-          return b;
-        }
-        Object.defineProperty(i,k,{
-          get: ig,
-          set: is,
-          enumerable: true
-        });
-        // id[k]=v;
-        e.forEach(function(e,idx,ar){
-          if (/input/i.test(e.tagName)){
-            function LocalChange(e){
-              if (e.target == this){
-                os(this.value);
-              }
-            }
-            e.addEventListener("change",LocalChange);
-            e.removeSeamlessCallback=function(){
-              e.removeEventListener("change",LocalChange);
-            };
-          }
-        });
-        break;
-      case "object":
-        i[k]={};
-        b[k]={};
-        for (n in d[k]){
-          createKey(n,d[k],i[k],b[k],getEls(e,n));
-        }
-        break;
-      default:
-    }
-  }
-
-  function syncD(k,d,i,b,e){
-    if (!i[k]){
-      createKey(k,d,i,b,e);
-    }
-    switch(typeof d[k]){
-      case "boolean":
-        e.forEach(function(el){
-          el.setAttribute(k,d[k]);
-        })
-      case "number":
-      case "string":
-        i[k]=d[k];
-        break;
-      case "object":
-        for (n in d[k]){
-          syncD(n,d[k],i[k],b[k],getEls(e,n));
-        }
-        break;
-      default:
-    }
-  }
-
-  function sync(d){
-    for (k in d){
-      syncD(k,d,incoming,base,getEls(root,k));
-    }
-  }
-  sync(data);
-
-  root.seamless = sync;
-  root.deseamless = function(){
-    (function DeSeamlessChild(c){
-      if (c.value){
-        c.removeSeamlessCallback();
-        delete c.removeSeamlessCallback;
-      }
-      for (i in c){
-        DeSeamlessChild(c[i]);
-      }
-    })(root);
-    root.removeEventListener("seamlessdatachange",CastChanges);
-    delete root.seamless;
-    incoming = {};
-    delete root.deseamless;
-  };
-
-  return root;
-};
-
-
-/***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
@@ -822,7 +751,7 @@ module.exports.code = function(url){
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__(2);

@@ -2,7 +2,7 @@
 //var getWorkerCode = require("worker.js");
 var storage = require("./storage.js")(),
     md5 = require("./md5.js")(),
-    sync = require("./sync.js");
+    sync = require("./ssync.js");
 
 function getBufferByURLHash(urlhash){
   var dh,d;
@@ -39,52 +39,9 @@ module.exports = window.Seamless = {
   connect: function(url){ // connection object closure
   
     var rh = md5(url),
-      Transmit,
       connection,
       buffer,
       InitConnection;
-
-    function handle(data,to){
-      var d,odh=storage.getItem(rh);
-      if (typeof data !== "string"){
-        try {
-          d=JSON.stringify(data);
-        }
-        catch(err){
-          throw err;
-        }
-      }
-      else {
-        try{
-          d=data;
-          data=JSON.parse(d);
-        }
-        catch(err){
-          throw err;
-        }
-      }
-      if (!buffer){
-        buffer=data;
-      }
-      var dh=md5(d);
-      if (odh !== dh){
-        buffer=data;
-        storage.removeItem(odh);
-        storage.setItem(dh,d);
-        storage.setItem(rh,dh);
-        to(buffer);
-      }
-    }
-    
-    function Receive(res){
-      handle(res,ToDOM);
-    }
-    
-    function ToDOM(data){
-      connection.clients.forEach(function(e,i,a){
-        if (e.seamless) e.seamless(data);
-      });
-    }
 
     if (connection=this.connection(url)) return connection;
     
@@ -93,31 +50,73 @@ module.exports = window.Seamless = {
     buffer=getBufferByURLHash(rh);
     
     InitConnection=new Promise(function(success,error){
-      var transmitter;
+      var transmitter, Transmit, Receive;
+      
+      function bufferedHandle(data,to){
+        var d,odh=storage.getItem(rh);
+        if (typeof data !== "string"){
+          try {
+            d=JSON.stringify(data);
+          }
+          catch(err){
+            throw err;
+          }
+        }
+        else {
+          try{
+            d=data;
+            data=JSON.parse(d);
+          }
+          catch(err){
+            throw err;
+          }
+        }
+        if (!buffer){
+          buffer=data;
+        }
+        var dh=md5(d);
+        if (odh !== dh){
+          buffer=data;
+          storage.removeItem(odh);
+          storage.setItem(dh,d);
+          storage.setItem(rh,dh);
+          to(buffer);
+        }
+      }
+      
+      Receive = function(res){
+        var data = (res.data)?res.data:res;
+        if (data && data != "false"){
+          bufferedHandle(data,ToDOM);
+          success(Transmit);
+        }
+        else {
+          alert("Connection lost. Reconnection constantly failing. Try reloading page.");
+          error(new Error("Connection lost."));
+        }
+      };
+      
+      function ToDOM(data){
+        connection.clients.forEach(function(e,i,a){
+          if (e.seamless) e.seamless(data);
+          else e.status = data;
+        });
+      }
       
       if (Worker){
-        var worker = new Worker(
-          URL.createObjectURL(
-            new Blob(require("./worker.js").code(url))
-          )
-        );
-        worker.onerror = function(e){
-          //worker.terminate();
-          error(e);
-        };
-        worker.onmessage = function(e){
-          if (e.data != "false") {
-            Receive(e.data);
-            success(connection);
-          }
-          else {
-            alert("Connection lost. Reconnection constantly failing. Try reloading page.");
-            error(new Error("Connection lost"));
-          }
-        };
-        transmitter = function(msg){
-          worker.postMessage(msg);
-        };
+        transmitter = (function(receiver){
+          var worker = new Worker(
+            URL.createObjectURL(
+              new Blob(require("./worker.js").code(url))
+            )
+          );
+          worker.onerror = function(e){
+            //worker.terminate();
+            error(e);
+          };
+          worker.onmessage = receiver;
+          return function(data){worker.postMessage(data)};
+        })(Receive);
       }
       else {
         transmitter = (function(callback){
@@ -127,21 +126,15 @@ module.exports = window.Seamless = {
           else{
             return require("./poller.js")(url,callback);
           }
-        })(function(args){
-          if (args && args != "false"){
-            Receive(args);
-            success(connection);
-          }
-          else {
-            alert("Connection lost. Reconnection constantly failing. Try reloading page.");
-            error(new Error("Connection lost"));
-          }
-        });
+        })(Receive);
       }
 
       Transmit=function (data){
-        handle(data,transmitter);
+        bufferedHandle(data,transmitter);
       };
+    })
+    .catch(function(err){
+      console.error(err);
     });
     
     return this.connections[rh]=connection={
@@ -159,23 +152,32 @@ module.exports = window.Seamless = {
       bindClients: function(elems){
         if (!(elems instanceof Array)) elems=[elems];
         elems.forEach(function(e,i,a){
-          e.connecting=InitConnection.then(function(){
+          e.connecting=InitConnection.then(function(transmit){
+            
+            function SeamlessDataChangeEventHandler(evt){
+              transmit(buffer);
+              evt.stopPropagation();
+            }
+            
             if (e instanceof HTMLElement) {
+              e.addEventListener('seamlessdatachange',SeamlessDataChangeEventHandler);
               if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")){
-                e.seamless= window[e.dataset.sync].bind(e);
-                e.deseamless= function(){
-                  e.removeAttribute("data-sync");
-                  delete this.seamless;
-                };
-                e.seamless(buffer,Transmit);
+                e.seamless = window[e.dataset.sync].bind(e);
               }
-              else sync(buffer,e,Transmit);
+              else {
+                e.seamless = sync.bind(e);
+              }
+              e.deseamless = function(){
+                this.removeEventListener('seamlessdatachange',SeamlessDataChangeEventHandler);
+                delete this.seamless;
+              }.bind(e);
+              e.seamless(buffer,transmit);
             }
             else {
               if (typeof e === "object") {
                 //TODO: seamless client-side reciever is a JS object
                 e.__defineGetter__("status",function(){return buffer});
-                e.__defineSetter__("status",Transmit);
+                e.__defineSetter__("status",transmit);
               }
               else if (typeof e === "function") {
                 a[i] = {
@@ -185,6 +187,7 @@ module.exports = window.Seamless = {
                   }
                 }
               }
+              e.status = buffer;
             }
             delete e.connecting;
           })

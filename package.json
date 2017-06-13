@@ -11,6 +11,7 @@
   "main": "bin/seamless-client.min.js",
   "module": "src/seamless.js",
   "dependencies": {
+    "basic-library": "git+https://github.com/cyper8/basic-library.git",
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "express-ws": "^2.0.0",
@@ -35,6 +36,6 @@
     "build": "webpack",
     "release": "NODE_ENV=production webpack",
     "test": "karma start --single-run",
-    "test-server": "karma start"
+    "test-server": "node tests/server.js &; karma start"
   }
 }
