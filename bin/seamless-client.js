@@ -75,66 +75,70 @@ module.exports = function(url, Rx) {
   var timer, rc = 0,
     poller;
 
-  function connect(url, data, Receiver) {
-    var verb = (!data || data == '') ? 'GET' : 'POST';
-    var xhr = new XMLHttpRequest();
-    xhr.addEventListener("readystatechange", function(e) {
-      if (this.readyState == 4) {
-        if (this.status == 200) {
-          Receiver(this.response);
+  function createConnection(url, data, Receiver) {
+    return new Promise(function(resolve, reject) {
+      var verb = (!data || data == '') ? 'GET' : 'POST';
+      var xhr = new XMLHttpRequest();
+      xhr.addEventListener("readystatechange", function(e) {
+        if (this.readyState == 4) {
+          if (this.status == 200) {
+            resolve(this.response);
+          }
+          else {
+            this.abort();
+            reject(this.status + ': Request Error');
+          }
         }
-        else {
-          this.abort();
-          console.error(this.status + ': Request Error');
-        }
-      }
-    });
-    xhr.addEventListener("error", function(e) {
-      this.abort();
-      throw Error(e.type);
-    });
-    xhr.timeout = 30000;
-    xhr.addEventListener("timeout", function() {
-      if ((this.readyState > 0) && (this.readyState < 4))
+      });
+      xhr.addEventListener("error", function(e) {
         this.abort();
-      throw Error("Request timed out!");
+        reject(e);
+      });
+      xhr.timeout = 30000;
+      xhr.addEventListener("timeout", function() {
+        if ((this.readyState > 0) && (this.readyState < 4))
+          this.abort();
+        reject(new Error("Request timed out!"));
+      });
+      xhr.responseType = 'json';
+      (xhr.executesession = function() {
+        xhr.open(verb, encodeURI(url), true);
+        if (verb == 'POST') xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(data || '');
+      })();
+    }).then(function(res) {
+      Receiver(res);
+    }).catch(function(err) {
+      console.error(err);
+      Receiver(false);
+      rc++;
+      return err;
     });
-    xhr.responseType = 'json';
-    (xhr.executesession = function() {
-      xhr.open(verb, encodeURI(url), true);
-      if (verb == 'POST') xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(data || '');
-    })();
-    return xhr;
   };
 
   url = (url.search(/^https?:\/\//i) < 0) ?
     url.replace(/^[^:]+:/i, "http:") :
     url;
 
-  (
-    function createConnection(Receiver) {
-      timer = setInterval(function() {
-        try {
-          poller = connect(url, '', Receiver);
+  (function poller() {
+    createConnection(url, '', Rx)
+      .then(function() {
+        timer = setTimeout(poller, 2000);
+      })
+      .catch(function() {
+        if (rc > 5) {
+          clearTimeout(timer);
+          console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
         }
-        catch (err) {
-          console.error(err);
-          rc++;
-          if (rc > 5) {
-            clearTimeout(timer);
-            rc = 0;
-            poller.abort();
-            alert("Connection lost. Reconnection constantly failing. Try reloading page.") ||
-              Receiver(false);
-          }
+        else {
+          console.error("Reconnecting attempt " + rc);
+          timer = setTimeout(poller, 2000);
         }
-      }, 5000);
-    }
-  )(Rx);
+      });
+  })();
 
   function Post(d) {
-    connect(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
+    createConnection(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
   }
   return Post;
 };
@@ -144,57 +148,59 @@ module.exports = function(url, Rx) {
 /* 1 */
 /***/ (function(module, exports) {
 
-module.exports = function(url,Rx){
-  var socket,ct,rt,rc=0,ec=0,Tx;
-  Tx=(function createConnection(success){
-    socket = new WebSocket(url);
-    ct=setTimeout(socket.close,9000);
-    console.log("New connection to "+url);
-    socket.onclose = function(e){
-      console.log("Connection to "+url+" closed.");
+module.exports = function(url, Rx) {
+  var ct, rt, rc = 0,
+    ec = 0;
+  var Tx = (function createConnection(success) {
+    var socket = new WebSocket(url);
+    ct = setTimeout(socket.close, 9000);
+    console.log("New connection to " + url);
+    socket.onclose = function(e) {
+      console.log("Connection to " + url + " closed.");
     };
-    socket.onopen = function(e){
+    socket.onopen = function(e) {
       clearTimeout(ct);
-      rc=0;
+      rc = 0;
       if (e.data) {
         Response(e.data);
       }
     };
-    socket.onerror = function(err){
+    socket.onerror = function(err) {
       console.error(err);
       ec++;
-      if (ec>10) {
+      if (ec > 10) {
         socket.close();
         console.log("Too many errors. Reconnecting");
-        ec=0;
+        ec = 0;
       }
     };
-    socket.onmessage = function(e){
+    socket.onmessage = function(e) {
       Response(e.data);
     };
-    function Response(res){
+
+    function Response(res) {
       success(res);
     }
-    if (!rt){// WATCHDOG
-      rt=setInterval(
-        function(){
-          if (socket){
-            if (socket.readyState == 3){ // CLOSED
-              Tx=createConnection(success);
+    if (!rt) { // WATCHDOG
+      rt = setInterval(
+        function() {
+          if (socket) {
+            if (socket.readyState == 3) { // CLOSED
+              Tx = createConnection(success);
               rc++;
             }
           }
-          if (rc>5){
+          if (rc > 5) {
             clearInterval(rt);
-            alert("Connection lost. Reconnection constantly failing. Try reloading page.") ||
-            success(false);
+            alert(" Socket connection lost. Reconnection constantly failing. Try reloading page.") ||
+              success(false);
           }
         }, 10000);
     }
-    return function(d){
+    return function(d) {
       socket.send(
-        (typeof d !== "string")?
-        JSON.stringify(d):
+        (typeof d !== "string") ?
+        JSON.stringify(d) :
         d
       )
     };
@@ -210,20 +216,20 @@ module.exports = function(url,Rx){
 /* global URL, Blob, Worker, HTMLElement */
 //var getWorkerCode = require("worker.js");
 var storage = __webpack_require__(6)(),
-    md5 = __webpack_require__(4)(),
-    sync = __webpack_require__(5);
+  md5 = __webpack_require__(4)(),
+  sync = __webpack_require__(5);
 
-function getBufferByURLHash(urlhash){
-  var dh,d;
-  if (dh=storage.getItem(urlhash)){
-    try{
-      d=JSON.parse(storage.getItem(dh));
+function getBufferByURLHash(urlhash) {
+  var dh, d;
+  if (dh = storage.getItem(urlhash)) {
+    try {
+      d = JSON.parse(storage.getItem(dh));
     }
-    catch(err){
+    catch (err) {
       throw err;
     }
   }
-  else d=undefined;
+  else d = undefined;
   return d;
 }
 
@@ -232,205 +238,206 @@ function getBufferByURLHash(urlhash){
 //}
 
 module.exports = window.Seamless = {
-  
-  compile: function(dom){
+
+  compile: function(dom) {
     var seamlessElements = dom.querySelectorAll("*[data-seamless]");
-    for (var i=0;i<seamlessElements.length;i++){
-      var el=seamlessElements[i];
+    for (var i = 0; i < seamlessElements.length; i++) {
+      var el = seamlessElements[i];
       this.connect(el.dataset.seamless).bindClients(el);
     }
   },
-  
-  connection: function(url){
+
+  connection: function(url) {
     return this.connections[md5(url)] || false;
   },
-  
-  connect: function(url){ // connection object closure
-  
+
+  connect: function(url) { // connection object closure
+
     var rh = md5(url),
       connection,
       buffer,
       InitConnection;
 
-    if (connection=this.connection(url)) return connection;
-    
-    // new connection
-    
-    buffer=getBufferByURLHash(rh);
-    
-    InitConnection=new Promise(function(success,error){
-      var transmitter, Transmit, Receive;
-      
-      function bufferedHandle(data,to){
-        var d,odh=storage.getItem(rh);
-        if (typeof data !== "string"){
-          try {
-            d=JSON.stringify(data);
-          }
-          catch(err){
-            throw err;
-          }
-        }
-        else {
-          try{
-            d=data;
-            data=JSON.parse(d);
-          }
-          catch(err){
-            throw err;
-          }
-        }
-        if (!buffer){
-          buffer=data;
-        }
-        var dh=md5(d);
-        if (odh !== dh){
-          buffer=data;
-          storage.removeItem(odh);
-          storage.setItem(dh,d);
-          storage.setItem(rh,dh);
-          to(buffer);
-        }
-      }
-      
-      Receive = function(res){
-        var data = (res.data)?res.data:res;
-        if (data && data != "false"){
-          bufferedHandle(data,ToDOM);
-          success(Transmit);
-        }
-        else {
-          alert("Connection lost. Reconnection constantly failing. Try reloading page.");
-          error(new Error("Connection lost."));
-        }
-      };
-      
-      function ToDOM(data){
-        connection.clients.forEach(function(e,i,a){
-          if (e.seamless) e.seamless(data);
-          else e.status = data;
-        });
-      }
-      
-      if (Worker){
-        transmitter = (function(receiver){
-          var worker = new Worker(
-            URL.createObjectURL(
-              new Blob(__webpack_require__(7).code(url))
-            )
-          );
-          worker.onerror = function(e){
-            //worker.terminate();
-            error(e);
-          };
-          worker.onmessage = receiver;
-          return function(data){worker.postMessage(data)};
-        })(Receive);
-      }
-      else {
-        transmitter = (function(callback){
-          if (!(url.search(/^wss?:\/\//i)<0) && WebSocket){
-            return __webpack_require__(1)(url,callback);
-          }
-          else{
-            return __webpack_require__(0)(url,callback);
-          }
-        })(Receive);
-      }
+    if (connection = this.connection(url)) return connection;
 
-      Transmit=function (data){
-        bufferedHandle(data,transmitter);
-      };
-    })
-    .catch(function(err){
-      console.error(err);
-    });
-    
-    return this.connections[rh]=connection={
+    // new connection
+
+    buffer = getBufferByURLHash(rh);
+
+    InitConnection = new Promise(function(success, error) {
+        var transmitter, Transmit, Receive;
+
+        function bufferedHandle(data, to) {
+          var d, odh = storage.getItem(rh);
+          if (typeof data !== "string") {
+            try {
+              d = JSON.stringify(data);
+            }
+            catch (err) {
+              throw err;
+            }
+          }
+          else {
+            try {
+              d = data;
+              data = JSON.parse(d);
+            }
+            catch (err) {
+              throw err;
+            }
+          }
+          to(buffer = data);
+          var dh = md5(d);
+          if (odh !== dh) {
+            storage.removeItem(odh);
+            storage.setItem(dh, d);
+            storage.setItem(rh, dh);
+          }
+        }
+
+        Receive = function(res) {
+          var data = (res.data) ? res.data : res;
+          if (data && data != "false") {
+            bufferedHandle(data, ToDOM);
+            success(Transmit);
+          }
+          else {
+            error(new Error("Connection lost."));
+          }
+        };
+
+        function ToDOM(data) {
+          connection.clients.forEach(function(e, i, a) {
+            if (e.seamless) e.seamless(data);
+            else e.status = data;
+          });
+        }
+
+        if (Worker) {
+          transmitter = (function(receiver) {
+            var worker = new Worker(
+              URL.createObjectURL(
+                new Blob(__webpack_require__(7).code(url))
+              )
+            );
+            worker.onerror = function(e) {
+              //worker.terminate();
+              error(e);
+            };
+            worker.onmessage = receiver;
+            return function(data) {
+              worker.postMessage(data)
+            };
+          })(Receive);
+        }
+        else {
+          transmitter = (function(callback) {
+            if (!(url.search(/^wss?:\/\//i) < 0) && WebSocket) {
+              return __webpack_require__(1)(url, callback);
+            }
+            else {
+              return __webpack_require__(0)(url, callback);
+            }
+          })(Receive);
+        }
+
+        Transmit = function(data) {
+          bufferedHandle(data, transmitter);
+        };
+      })
+      .catch(function(err) {
+        console.error(err);
+      });
+
+    return this.connections[rh] = connection = {
       url: url,
-      hashes:{
+      hashes: {
         url: rh,
-        get dataHash(){
+        get dataHash() {
           return storage.getItem(connection.hashes.url);
         }
       },
-      get data(){
+      get data() {
         return buffer;
       },
       clients: [],
-      bindClients: function(elems){
-        if (!(elems instanceof Array)) elems=[elems];
-        elems.forEach(function(e,i,a){
-          e.connecting=InitConnection.then(function(transmit){
-            
-            function SeamlessDataChangeEventHandler(evt){
-              transmit(buffer);
-              evt.stopPropagation();
-            }
-            
-            if (e instanceof HTMLElement) {
-              e.addEventListener('seamlessdatachange',SeamlessDataChangeEventHandler);
-              if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")){
-                e.seamless = window[e.dataset.sync].bind(e);
+      bindClients: function(elems) {
+        if (!(elems instanceof Array)) elems = [elems];
+        elems.forEach(function(e, i, a) {
+          e.connecting = InitConnection.then(function(transmit) {
+
+              function SeamlessDataChangeEventHandler(evt) {
+                transmit(buffer);
+                evt.stopPropagation();
+              }
+
+              if (e instanceof HTMLElement) {
+                e.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+                if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
+                  e.seamless = window[e.dataset.sync].bind(e);
+                }
+                else {
+                  e.seamless = sync.bind(e);
+                }
+                e.deseamless = function() {
+                  this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+                  delete this.seamless;
+                }.bind(e);
+                e.seamless(buffer, transmit);
               }
               else {
-                e.seamless = sync.bind(e);
-              }
-              e.deseamless = function(){
-                this.removeEventListener('seamlessdatachange',SeamlessDataChangeEventHandler);
-                delete this.seamless;
-              }.bind(e);
-              e.seamless(buffer,transmit);
-            }
-            else {
-              if (typeof e === "object") {
-                //TODO: seamless client-side reciever is a JS object
-                e.__defineGetter__("status",function(){return buffer});
-                e.__defineSetter__("status",transmit);
-              }
-              else if (typeof e === "function") {
-                a[i] = {
-                  seamless: e,
-                  deseamless: function(){
-                    delete this.seamless;
+                if (typeof e === "object") {
+                  //TODO: seamless client-side reciever is a JS object
+                  e.__defineGetter__("status", function() {
+                    return buffer
+                  });
+                  e.__defineSetter__("status", transmit);
+                }
+                else if (typeof e === "function") {
+                  a[i] = {
+                    seamless: e,
+                    deseamless: function() {
+                      delete this.seamless;
+                    }
                   }
                 }
+                e.status = buffer;
               }
-              e.status = buffer;
-            }
-            delete e.connecting;
-          })
-          .catch(function(err){throw err});
+              delete e.connecting;
+            })
+            .catch(function(err) {
+              throw err
+            });
           connection.clients.push(e);
         });
       },
-      unbindClients: function(elems){
-        if (!elems) elems=connection.clients;
-        if (!(elems instanceof Array)) elems=[elems];
-        elems.forEach(function(e,i,a){
-          var index=connection.clients.indexOf(e);
+      unbindClients: function(elems) {
+        if (!elems) elems = connection.clients;
+        if (!(elems instanceof Array)) elems = [elems];
+        elems.forEach(function(e, i, a) {
+          var index = connection.clients.indexOf(e);
           if (index >= 0) {
-            var e = connection.clients.splice(index,1);
+            var e = connection.clients.splice(index, 1);
             if (e.deseamless) e.deseamless();
             else {
-              e.connecting.then(function(){
-                e.deseamless();
-              })
-              .catch(function(err){
-                throw err;
-              });
+              e.connecting.then(function() {
+                  e.deseamless();
+                })
+                .catch(function(err) {
+                  throw err;
+                });
             }
           }
         });
       }
     };
   },
-  
-  disconnect: function(url){
+
+  disconnect: function(url) {
     this.connection(url).unbindClients();
     delete this.connection(url);
   },
-  
+
   connections: {},
 };
 

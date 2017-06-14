@@ -4,94 +4,95 @@ var express = require('express'),
   jsonParser = bodyParser.json(),
   app = express(),
   expressWs = require("express-ws")(app),
-  dbconfig = require('./dbconf.json'),
-  mongoose = require('mongoose'),
-  seamlessMongoose = require("../bin/seamless-mongoose-plugin.js");
+  store = DataStore();
 
-var mgoptions = {
-  server: {
-    socketOptions: {
-      keepAlive: 300000,
-      connectTimeoutMS: 30000
-    }
-  },
-  replset: {
-    socketOptions: {
-      keepAlive: 300000,
-      connectTimeoutMS: 30000
-    }
-  },
-  user: dbconfig.username,
-  pass: dbconfig.password
-};
+function DataStore() {
+  var store = require("./seed.json");
 
-mongoose.connect('mongodb://' + dbconfig.username +
-  ':' + dbconfig.password +
-  '@' + dbconfig.url + ":" + dbconfig.port +
-  '/' + dbconfig.db, mgoptions);
-
-mongoose.plugin(seamlessMongoose);
-
-const schema = {
-  type: String,
-  count: Number,
-  hoverable: Boolean,
-  message: String,
-  addresee: String
-};
-
-const index = {
-  addresee: 1,
-  type: 1
-};
-
-var Schema = mongoose.Schema;
-var TestSchema = new Schema(schema);
-TestSchema.index(index);
-
-var TestModel = mongoose.model('Test', TestSchema);
-
-// ensure seeded db
-TestModel.find({}).count(function(err, count) {
-  if (err) {
-    throw err;
+  function unarrayIfOne(docs) {
+    if (docs instanceof Array && docs.length == 1) return docs[0];
+    else return docs;
   }
-  if (!count) {
-    var seed = require("./seed.json");
-    seed.forEach(function(e, i, a) {
-      TestModel.create(e);
-    });
+
+  function serialize(data) {
+    var sdata;
+    try {
+      sdata = (typeof data === "string") ? data : JSON.stringify(data);
+    }
+    catch (err) {
+      sdata = "";
+      console.error(err);
+    }
+    finally {
+      return sdata;
+    }
   }
-  else console.log("model has " + count + " docs");
-});
+
+  function deserialize(sdata) {
+    var data;
+    try {
+      data = (typeof sdata === "object") ? sdata : JSON.parse(sdata);
+    }
+    catch (err) {
+      data = {};
+      console.error(err);
+    }
+    finally {
+      return data;
+    }
+  }
+
+  function getData(id) {
+    return unarrayIfOne(
+      store.filter(function(e) {
+        return e._id == id;
+      })
+    );
+  }
+
+  function setData(id, data) {
+    var d = deserialize(data);
+    d._id = id;
+    for (var i = 0; i < store.length; i++) {
+      if (store[i]._id == id) {
+        store[i] = d;
+        break;
+      }
+    }
+    return d;
+  }
+
+  return {
+    serialize,
+    deserialize,
+    getData,
+    setData
+  };
+}
 
 app.use(require("helmet")());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
 }));
-app.use('/gtest/:_id', TestModel.seamlessDataLink.bind(TestModel));
+
+app.use('/gtest/:_id', function(req, res, next) {
+  if (req.method == 'GET') {
+    res.send(store.serialize(store.getData(req.params._id)));
+  }
+  else if (req.method == 'POST') {
+    res.send(store.serialize(store.setData(req.params._id, req.body)));
+  }
+});
+
 app.ws('/test/:_id', function(ws, req) {
   //var location = url.parse(ws.upgradeReq.url, true);
-  seamlessMongoose.registerClient(req.originalUrl, ws);
-  TestModel.seamlessDataLink(req, ws);
   ws.on('message', function incoming(message, flags) {
     if (!flags.binary) {
-      try {
-        var data = JSON.parse(message);
-      }
-      catch (err) {
-        return ws.close(400, "Error parsing message");
-      }
-      console.log("saving data for " + req.params._id + "\n>>> " + message);
-      TestModel.seamlessDataLink({
-        method: "POST",
-        originalUrl: req.originalUrl,
-        params: req.params,
-        body: data
-      }, ws);
+      ws.send(store.serialize(store.setData(req.params._id, message)));
     }
   });
+  ws.send(store.serialize(store.getData(req.params._id)));
 });
 
 app.use(express.static(`${__dirname}`, {

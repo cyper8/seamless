@@ -1,4 +1,5 @@
 [{
+  "_id": "0100",
   "type": "greeting",
   "count": 1,
   "hoverable": false,
@@ -6,6 +7,7 @@
   "addresee": "Bob"
 },
 {
+  "_id": "0101",
   "type": "introduction",
   "count": 1,
   "hoverable": true,
@@ -13,6 +15,7 @@
   "addresee": "Bob"
 },
 {
+  "_id": "0102",
   "type": "message",
   "count": 3,
   "hoverable": true,
@@ -20,6 +23,7 @@
   "addresee": "Bob"
 },
 {
+  "_id": "0103",
   "type": "writeoff",
   "count": 1,
   "hoverable": false,
