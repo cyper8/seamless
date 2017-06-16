@@ -128,7 +128,7 @@ function CustomSync(data,transmitter){
   
   /*
   * when called first time, this function has a callback as 2-nd argument
-  * to be used for data uploading. It is wise to some user actions
+  * to be used for data uploading. It is wise to bind it to some user actions
   */
   if (transmitter) {
     this.addEventListener('click',function(e){

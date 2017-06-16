@@ -149,202 +149,228 @@ module.exports = function(url, Rx) {
 /***/ (function(module, exports) {
 
 module.exports = function(url, Rx) {
-  var ct, rt, rc = 0,
+  var ct,
+    rt,
+    rc = 0,
     ec = 0;
-  var Tx = (function createConnection(success) {
-    var socket = new WebSocket(url);
-    ct = setTimeout(socket.close, 9000);
-    console.log("New connection to " + url);
-    socket.onclose = function(e) {
-      console.log("Connection to " + url + " closed.");
-    };
-    socket.onopen = function(e) {
-      clearTimeout(ct);
-      rc = 0;
-      if (e.data) {
-        Response(e.data);
-      }
-    };
-    socket.onerror = function(err) {
-      console.error(err);
-      ec++;
-      if (ec > 10) {
-        socket.close();
-        console.log("Too many errors. Reconnecting");
-        ec = 0;
-      }
-    };
-    socket.onmessage = function(e) {
-      Response(e.data);
-    };
 
-    function Response(res) {
-      success(res);
-    }
-    if (!rt) { // WATCHDOG
-      rt = setInterval(
-        function() {
-          if (socket) {
-            if (socket.readyState == 3) { // CLOSED
-              Tx = createConnection(success);
-              rc++;
-            }
+  function connect() {
+    return new Promise(function(resolve, reject) {
+      function ConnectionTimeout() {
+        socket.close();
+        reject(new Error("WS: Connection attempt failure"));
+      }
+
+      var socket = new WebSocket(url);
+      ct = setTimeout(ConnectionTimeout, 9000);
+      console.log("WS:New connection to " + url);
+      socket.onclose = function(e) {
+        console.log("WS:Connection to " + url + " closed.");
+      };
+      socket.onopen = function(e) {
+        clearTimeout(ct);
+        rc = 0;
+        if (e.data) {
+          Rx(e.data);
+        }
+        resolve(socket);
+      };
+      socket.onerror = function(error) {
+        console.error(error);
+        ec++;
+        if (ec > 5) {
+          socket.close();
+          console.log("WS:Too many errors. Reconnecting");
+          reject(error);
+          ec = 0;
+        }
+      };
+      socket.onmessage = function(e) {
+        Rx(e.data);
+      };
+    });
+  }
+
+  function createConnection() {
+    return connect()
+      .catch(function(err) {
+        return new Promise(function(resolve, reject) {
+          if (rc > 5) reject(new Error("WS:Socket connection lost. Reconnection constantly failing. Try reloading page."));
+          else {
+            console.error(err);
+            rc++;
+            rt = setInterval(resolve, 10000);
           }
-          if (rc > 5) {
-            clearInterval(rt);
-            alert(" Socket connection lost. Reconnection constantly failing. Try reloading page.") ||
-              success(false);
-          }
-        }, 10000);
-    }
-    return function(d) {
+        })
+          .then(createConnection)
+          .catch(console.error);
+      });
+  }
+
+  var connection = createConnection();
+
+  return function(d) {
+    connection.then(function(socket) {
       socket.send(
         (typeof d !== "string") ?
-        JSON.stringify(d) :
-        d
-      )
-    };
-  })(Rx);
-  return Tx;
+          JSON.stringify(d) :
+          d
+      );
+    });
+  };
 };
-
 
 /***/ }),
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* global URL, Blob, Worker, HTMLElement */
-//var getWorkerCode = require("worker.js");
 var storage = __webpack_require__(6)(),
   md5 = __webpack_require__(4)(),
-  sync = __webpack_require__(5);
+  sync = __webpack_require__(5),
+  Seamless;
+
 
 function getBufferByURLHash(urlhash) {
-  var dh, d;
+  var dh,
+    d;
   if (dh = storage.getItem(urlhash)) {
     try {
       d = JSON.parse(storage.getItem(dh));
-    }
-    catch (err) {
+    } catch (err) {
       throw err;
     }
   }
-  else d = undefined;
+  else
+    d = undefined;
   return d;
 }
 
-//function getBufferByURL(url){
-//  return getBufferByURLHash(md5(url));
-//}
+function ComplementUrl(url) {
+  var s;
+  if (!url)
+    throw Error("Unrecognized url: " + url);
+  if (url.charAt(0) == "/") {
+    s = window.location.origin + "" + url;
+  } else {
+    s = window.location.href + "/" + url;
+  }
+  return s;
+}
 
-module.exports = window.Seamless = {
+module.exports = exports = Seamless = window.Seamless = {
 
   compile: function(dom) {
     var seamlessElements = dom.querySelectorAll("*[data-seamless]");
+    var connections = [];
     for (var i = 0; i < seamlessElements.length; i++) {
       var el = seamlessElements[i];
-      this.connect(el.dataset.seamless).bindClients(el);
+      connections.push(this.with(el.dataset.seamless).bindClients(el));
     }
+    return Promise.all(connections);
   },
 
-  connection: function(url) {
+  getConnection: function(endpoint) {
+    var url = ComplementUrl(endpoint);
     return this.connections[md5(url)] || false;
   },
 
-  connect: function(url) { // connection object closure
-
+  with: function(endpoint, config) { // connection object closure
+    var conf = config || {};
+    var url = ComplementUrl(endpoint);
     var rh = md5(url),
       connection,
       buffer,
       InitConnection;
 
-    if (connection = this.connection(url)) return connection;
+    if (connection = this.getConnection(url)) return connection;
 
     // new connection
 
     buffer = getBufferByURLHash(rh);
 
     InitConnection = new Promise(function(success, error) {
-        var transmitter, Transmit, Receive;
+      var transmitter,
+        Transmit,
+        Receive;
 
-        function bufferedHandle(data, to) {
-          var d, odh = storage.getItem(rh);
-          if (typeof data !== "string") {
-            try {
-              d = JSON.stringify(data);
-            }
-            catch (err) {
-              throw err;
-            }
+      function bufferedHandle(data, to) {
+        var d,
+          odh = storage.getItem(rh);
+
+        if (typeof data !== "string") {
+          try {
+            d = JSON.stringify(data);
+          } catch (err) {
+            throw err;
           }
-          else {
-            try {
-              d = data;
-              data = JSON.parse(d);
-            }
-            catch (err) {
-              throw err;
-            }
-          }
-          to(buffer = data);
-          var dh = md5(d);
-          if (odh !== dh) {
-            storage.removeItem(odh);
-            storage.setItem(dh, d);
-            storage.setItem(rh, dh);
+        } else {
+          try {
+            d = data;
+            data = JSON.parse(d);
+          } catch (err) {
+            throw err;
           }
         }
 
-        Receive = function(res) {
-          var data = (res.data) ? res.data : res;
-          if (data && data != "false") {
-            bufferedHandle(data, ToDOM);
-            success(Transmit);
+        to(buffer = data);
+        var dh = md5(d);
+
+        if (odh !== dh) {
+          storage.removeItem(odh);
+          storage.setItem(dh, d);
+          storage.setItem(rh, dh);
+        }
+      }
+
+      Receive = function(res) {
+        var data = (res.data) ? res.data : res;
+        if (data && data != "false") {
+          bufferedHandle(data, ToDOM);
+          success(Transmit);
+        } else {
+          error(new Error("Connection lost."));
+        }
+      };
+
+      function ToDOM(data) {
+        connection.clients.forEach(function(e, i, a) {
+          if (e.seamless) e.seamless(data);
+          else
+            e.status = data;
+        });
+      }
+
+      if (Worker && !conf.noWorker) {
+        transmitter = (function(receiver) {
+          var worker = new Worker(
+            URL.createObjectURL(
+              new Blob(__webpack_require__(7).code(url))
+            )
+          );
+          worker.onerror = function(e) {
+            //worker.terminate();
+            error(e);
+          };
+          worker.onmessage = receiver;
+          return function(data) {
+            worker.postMessage(data)
+          };
+        })(Receive);
+      } else {
+        transmitter = (function(callback) {
+          if (!(url.search(/^wss?:\/\//i) < 0) && WebSocket) {
+            return __webpack_require__(1)(url, callback);
+          } else {
+            return __webpack_require__(0)(url, callback);
           }
-          else {
-            error(new Error("Connection lost."));
-          }
-        };
+        })(Receive);
+      }
 
-        function ToDOM(data) {
-          connection.clients.forEach(function(e, i, a) {
-            if (e.seamless) e.seamless(data);
-            else e.status = data;
-          });
-        }
-
-        if (Worker) {
-          transmitter = (function(receiver) {
-            var worker = new Worker(
-              URL.createObjectURL(
-                new Blob(__webpack_require__(7).code(url))
-              )
-            );
-            worker.onerror = function(e) {
-              //worker.terminate();
-              error(e);
-            };
-            worker.onmessage = receiver;
-            return function(data) {
-              worker.postMessage(data)
-            };
-          })(Receive);
-        }
-        else {
-          transmitter = (function(callback) {
-            if (!(url.search(/^wss?:\/\//i) < 0) && WebSocket) {
-              return __webpack_require__(1)(url, callback);
-            }
-            else {
-              return __webpack_require__(0)(url, callback);
-            }
-          })(Receive);
-        }
-
-        Transmit = function(data) {
-          bufferedHandle(data, transmitter);
-        };
-      })
+      Transmit = function(data) {
+        bufferedHandle(data, transmitter);
+      };
+    })
       .catch(function(err) {
         console.error(err);
       });
@@ -362,58 +388,59 @@ module.exports = window.Seamless = {
       },
       clients: [],
       bindClients: function(elems) {
-        if (!(elems instanceof Array)) elems = [elems];
+        if (!(elems instanceof Array))
+          elems = [elems];
         elems.forEach(function(e, i, a) {
           e.connecting = InitConnection.then(function(transmit) {
 
-              function SeamlessDataChangeEventHandler(evt) {
-                transmit(buffer);
-                evt.stopPropagation();
-              }
+            function SeamlessDataChangeEventHandler(evt) {
+              transmit(buffer);
+              evt.stopPropagation();
+            }
 
-              if (e instanceof HTMLElement) {
-                e.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
-                if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
-                  e.seamless = window[e.dataset.sync].bind(e);
-                }
-                else {
-                  e.seamless = sync.bind(e);
-                }
-                e.deseamless = function() {
-                  this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
-                  delete this.seamless;
-                }.bind(e);
-                e.seamless(buffer, transmit);
+            if (e instanceof HTMLElement) {
+              e.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+              if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
+                e.seamless = window[e.dataset.sync].bind(e);
+              } else {
+                e.seamless = sync.bind(e);
               }
-              else {
-                if (typeof e === "object") {
-                  //TODO: seamless client-side reciever is a JS object
-                  e.__defineGetter__("status", function() {
-                    return buffer
-                  });
-                  e.__defineSetter__("status", transmit);
-                }
-                else if (typeof e === "function") {
-                  a[i] = {
-                    seamless: e,
-                    deseamless: function() {
-                      delete this.seamless;
-                    }
+              e.deseamless = function() {
+                this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+                delete this.seamless;
+              }.bind(e);
+              e.seamless(buffer, transmit);
+            } else {
+              if (typeof e === "object") {
+                //TODO: seamless client-side reciever is a JS object
+                e.__defineGetter__("status", function() {
+                  return buffer
+                });
+                e.__defineSetter__("status", transmit);
+              } else if (typeof e === "function") {
+                a[i] = {
+                  seamless: e,
+                  deseamless: function() {
+                    delete this.seamless;
                   }
                 }
-                e.status = buffer;
               }
-              delete e.connecting;
-            })
+              e.status = buffer;
+            }
+            delete e.connecting;
+          })
             .catch(function(err) {
               throw err
             });
           connection.clients.push(e);
         });
+        return InitConnection;
       },
       unbindClients: function(elems) {
-        if (!elems) elems = connection.clients;
-        if (!(elems instanceof Array)) elems = [elems];
+        if (!elems)
+          elems = connection.clients;
+        if (!(elems instanceof Array))
+          elems = [elems];
         elems.forEach(function(e, i, a) {
           var index = connection.clients.indexOf(e);
           if (index >= 0) {
@@ -421,21 +448,23 @@ module.exports = window.Seamless = {
             if (e.deseamless) e.deseamless();
             else {
               e.connecting.then(function() {
-                  e.deseamless();
-                })
+                e.deseamless();
+              })
                 .catch(function(err) {
                   throw err;
                 });
             }
           }
         });
+        return InitConnection;
       }
     };
   },
 
-  disconnect: function(url) {
-    this.connection(url).unbindClients();
-    delete this.connection(url);
+  disconnect: function(endpoint) {
+    var url = ComplementUrl(endpoint);
+    this.getConnection(url).unbindClients();
+    delete this.getConnection(url);
   },
 
   connections: {},
@@ -718,42 +747,43 @@ module.exports = function(){
 /***/ (function(module, exports, __webpack_require__) {
 
 
-function workerFunction(url){
+function workerFunction(url) {
   var sendToServer;
-  onmessage = function(e){
-    if (sendToServer){
+  onmessage = function(e) {
+    if (sendToServer) {
       sendToServer(e.data || e);
-    }
-    else{
+    } else {
       postMessage("");
     }
   };
-  function respHandler(res){
-    if (res){
+  function respHandler(res) {
+    if (res) {
       postMessage(res);
+    } else {
+      postMessage("false")
     }
-    else {postMessage("false")};
+    ;
   }
-  if (((/^wss?:\/\//i).test(url)) && WebSocket){
-    sendToServer = __webpack_require__(1)(url,respHandler);
+  if (((/^wss?:\/\//i).test(url)) && WebSocket) {
+    sendToServer = __webpack_require__(1)(url, respHandler);
+  } else {
+    sendToServer = __webpack_require__(0)(url, respHandler);
   }
-  else{
-    sendToServer = __webpack_require__(0)(url,respHandler);
-  }
-};
+}
+;
 
-module.exports.code = function(url){
+module.exports.code = function(url) {
   var code = workerFunction.toString();
   var re = /([a-zA-Z_]*require[_]*)\(([^()]*)\)[^({ ;]*/m;
   var m;
-  while((m = re.exec(code)) !== null){
+  while ((m = re.exec(code)) !== null) {
     if (m.index === re.lastIndex) re.lastIndex++;
 
     var p = code.split(m[0]);
-    var i = eval(m[0]+".toString()");
-    code = p.join("("+i+")");
+    var i = eval(m[0] + ".toString()");
+    code = p.join("(" + i + ")");
   }
-  return ["(" + code + ")(\""+url+"\")"];
+  return ["(" + code + ")(\"" + url + "\")"];
 };
 
 

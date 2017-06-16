@@ -40,6 +40,11 @@ module.exports = [
       libraryTarget: 'var',
       filename: env === "production" ? "seamless-client.min.js" : "seamless-client.js"
     },
-    resolve
+    resolve,
+    watch: true,
+    watchOptions: {
+      aggregateTimeout: 1000,
+      ignored: /node_modules/
+    }
   }
 ]

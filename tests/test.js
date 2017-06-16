@@ -13,6 +13,20 @@ function SyncTest(data, transmitter) {
   }
 }
 
-window.addEventListener('load', function() {
-  Seamless.compile(document.body);
+var element;
+beforeEach(function(done) {
+  element = document.createElement("div");
+  //element.dataset.seamless = "/gtest/0100";
+  document.body.appendChild(element);
+  //Seamless.compile(document.body).then(done);
+  Seamless.with("/gtest/0100", {
+    noWorker: true
+  }).bindClients(element).then(done);
+});
+
+
+describe("Seamless", function() {
+  it("populates element", function() {
+    expect(element.children.length).toBeGreaterThan(0);
+  })
 })

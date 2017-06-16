@@ -16,7 +16,8 @@
     "express": "^4.14.0",
     "express-ws": "^2.0.0",
     "helmet": "^2.3.0",
-    "mongoose": "^4.10.4"
+    "mongoose": "^4.10.4",
+    "url-parse": "^1.1.9"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^4.0.1",
@@ -26,6 +27,7 @@
     "karma-firefox-launcher": "^1.0.1",
     "karma-jasmine": "^1.1.0",
     "karma-phantomjs-launcher": "^1.0.4",
+    "karma-promise": "^0.1.0",
     "karma-webpack": "^2.0.3",
     "phantomjs-prebuilt": "^2.1.14",
     "promise-polyfill": "^6.0.2",
@@ -36,6 +38,6 @@
     "build": "webpack",
     "release": "NODE_ENV=production webpack",
     "test": "karma start --single-run",
-    "test-server": "node tests/server.js &; karma start"
+    "test-server": "karma start"
   }
 }
