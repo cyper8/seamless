@@ -3,7 +3,7 @@ var jsonParser = function(config) {
   return require('body-parser').json();
 };
 var SeamlessTestMiddleware = function(config) {
-  return require("./tests/server.js")();
+  return require("./test/server.js")();
 };
 
 var browsers = ["PhantomJS"];
@@ -19,10 +19,10 @@ module.exports = function(config) {
     listenAddress: 'localhost',
     hostname: 'localhost',
     frameworks: ['jasmine', 'promise'],
-    //customContextFile: 'tests/index.html',
+    //customContextFile: 'test/index.html',
     files: [
       './src/seamless.js',
-      './tests/test.js'
+      './test/test.js'
     ],
     preprocessors: {
       './src/seamless.js': 'webpack'

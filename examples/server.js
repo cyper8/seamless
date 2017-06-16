@@ -6,7 +6,7 @@ var express = require('express'),
   store = DataStore();
 
 function DataStore() {
-  var store = require("../tests/seed.json");
+  var store = require("../test/seed.json");
 
   function unarrayIfOne(docs) {
     if (docs instanceof Array && docs.length == 1) return docs[0];

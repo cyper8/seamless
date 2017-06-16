@@ -34,12 +34,12 @@ function ComplementUrl(url) {
 
 module.exports = exports = Seamless = window.Seamless = {
 
-  compile: function(dom) {
+  compile: function(dom,config) {
     var seamlessElements = dom.querySelectorAll("*[data-seamless]");
     var connections = [];
     for (var i = 0; i < seamlessElements.length; i++) {
       var el = seamlessElements[i];
-      connections.push(this.with(el.dataset.seamless).bindClients(el));
+      connections.push(this.with(el.dataset.seamless,config).bindClients(el));
     }
     return Promise.all(connections);
   },
