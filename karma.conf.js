@@ -22,14 +22,16 @@ module.exports = function(config) {
     //customContextFile: 'test/index.html',
     files: [
       './src/seamless.js',
-      './test/test.js'
+      './test/*.test.js'
     ],
     preprocessors: {
       './src/seamless.js': 'webpack'
     },
+    reporters: ['spec'],
     webpack: webpackConf,
     webpackMiddleware: {
       stats: 'minimal',
+      watch: true,
       watchOptions: { // watching with Webpack is better than with Karma
         aggregateTimeout: 1000,
         ignored: /node_modules/
@@ -48,7 +50,8 @@ module.exports = function(config) {
       'karma-phantomjs-launcher',
       'karma-chrome-launcher',
       'karma-firefox-launcher',
-      'karma-promise'
+      'karma-promise',
+      'karma-spec-reporter'
     ],
     port: 8080,
     colors: true,

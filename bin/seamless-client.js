@@ -64,169 +64,16 @@ var Seamless =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 8);
+/******/ 	return __webpack_require__(__webpack_require__.s = 7);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports) {
-
-module.exports = function(url, Rx) {
-  var timer, rc = 0,
-    poller;
-
-  function createConnection(url, data, Receiver) {
-    return new Promise(function(resolve, reject) {
-      var verb = (!data || data == '') ? 'GET' : 'POST';
-      var xhr = new XMLHttpRequest();
-      xhr.addEventListener("readystatechange", function(e) {
-        if (this.readyState == 4) {
-          if (this.status == 200) {
-            resolve(this.response);
-          }
-          else {
-            this.abort();
-            reject(this.status + ': Request Error');
-          }
-        }
-      });
-      xhr.addEventListener("error", function(e) {
-        this.abort();
-        reject(e);
-      });
-      xhr.timeout = 30000;
-      xhr.addEventListener("timeout", function() {
-        if ((this.readyState > 0) && (this.readyState < 4))
-          this.abort();
-        reject(new Error("Request timed out!"));
-      });
-      xhr.responseType = 'json';
-      (xhr.executesession = function() {
-        xhr.open(verb, encodeURI(url), true);
-        if (verb == 'POST') xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(data || '');
-      })();
-    }).then(function(res) {
-      Receiver(res);
-    }).catch(function(err) {
-      console.error(err);
-      Receiver(false);
-      rc++;
-      return err;
-    });
-  };
-
-  url = (url.search(/^https?:\/\//i) < 0) ?
-    url.replace(/^[^:]+:/i, "http:") :
-    url;
-
-  (function poller() {
-    createConnection(url, '', Rx)
-      .then(function() {
-        timer = setTimeout(poller, 2000);
-      })
-      .catch(function() {
-        if (rc > 5) {
-          clearTimeout(timer);
-          console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
-        }
-        else {
-          console.error("Reconnecting attempt " + rc);
-          timer = setTimeout(poller, 2000);
-        }
-      });
-  })();
-
-  function Post(d) {
-    createConnection(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
-  }
-  return Post;
-};
-
-
-/***/ }),
-/* 1 */
-/***/ (function(module, exports) {
-
-module.exports = function(url, Rx) {
-  var ct,
-    rt,
-    rc = 0,
-    ec = 0;
-
-  function connect() {
-    return new Promise(function(resolve, reject) {
-      function ConnectionTimeout() {
-        socket.close();
-        reject(new Error("WS: Connection attempt failure"));
-      }
-
-      var socket = new WebSocket(url);
-      ct = setTimeout(ConnectionTimeout, 9000);
-      console.log("WS:New connection to " + url);
-      socket.onclose = function(e) {
-        console.log("WS:Connection to " + url + " closed.");
-      };
-      socket.onopen = function(e) {
-        clearTimeout(ct);
-        rc = 0;
-        if (e.data) {
-          Rx(e.data);
-        }
-        resolve(socket);
-      };
-      socket.onerror = function(error) {
-        console.error(error);
-        ec++;
-        if (ec > 5) {
-          socket.close();
-          console.log("WS:Too many errors. Reconnecting");
-          reject(error);
-          ec = 0;
-        }
-      };
-      socket.onmessage = function(e) {
-        Rx(e.data);
-      };
-    });
-  }
-
-  function createConnection() {
-    return connect()
-      .catch(function(err) {
-        return new Promise(function(resolve, reject) {
-          if (rc > 5) reject(new Error("WS:Socket connection lost. Reconnection constantly failing. Try reloading page."));
-          else {
-            console.error(err);
-            rc++;
-            rt = setInterval(resolve, 10000);
-          }
-        })
-          .then(createConnection)
-          .catch(console.error);
-      });
-  }
-
-  var connection = createConnection();
-
-  return function(d) {
-    connection.then(function(socket) {
-      socket.send(
-        (typeof d !== "string") ?
-          JSON.stringify(d) :
-          d
-      );
-    });
-  };
-};
-
-/***/ }),
-/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* global URL, Blob, Worker, HTMLElement */
 var storage = __webpack_require__(6)(),
-  md5 = __webpack_require__(4)(),
+  md5 = __webpack_require__(2)(),
   sync = __webpack_require__(5),
   Seamless;
 
@@ -275,8 +122,7 @@ module.exports = exports = Seamless = window.Seamless = {
     return this.connections[md5(url)] || false;
   },
 
-  with: function(endpoint, config) { // connection object closure
-    var conf = config || {};
+  with: function(endpoint) { // connection object closure
     var url = ComplementUrl(endpoint);
     var rh = md5(url),
       connection,
@@ -341,31 +187,13 @@ module.exports = exports = Seamless = window.Seamless = {
         });
       }
 
-      if (Worker && !conf.noWorker) {
-        transmitter = (function(receiver) {
-          var worker = new Worker(
-            URL.createObjectURL(
-              new Blob(__webpack_require__(7).code(url))
-            )
-          );
-          worker.onerror = function(e) {
-            //worker.terminate();
-            error(e);
-          };
-          worker.onmessage = receiver;
-          return function(data) {
-            worker.postMessage(data)
-          };
-        })(Receive);
-      } else {
-        transmitter = (function(callback) {
-          if (!(url.search(/^wss?:\/\//i) < 0) && WebSocket) {
-            return __webpack_require__(1)(url, callback);
-          } else {
-            return __webpack_require__(0)(url, callback);
-          }
-        })(Receive);
-      }
+      transmitter = (function(callback) {
+        if (!(url.search(/^wss?:\/\//i) < 0) && WebSocket) {
+          return __webpack_require__(4)(url, callback);
+        } else {
+          return __webpack_require__(3)(url.replace(/^ws/, "http"), callback);
+        }
+      })(Receive);
 
       Transmit = function(data) {
         bufferedHandle(data, transmitter);
@@ -472,7 +300,7 @@ module.exports = exports = Seamless = window.Seamless = {
 
 
 /***/ }),
-/* 3 */
+/* 1 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -492,7 +320,7 @@ function element(desc){
 /* harmony default export */ __webpack_exports__["default"] = (element);
 
 /***/ }),
-/* 4 */
+/* 2 */
 /***/ (function(module, exports) {
 
 module.exports = function() {
@@ -598,10 +426,163 @@ module.exports = function() {
 }
 
 /***/ }),
+/* 3 */
+/***/ (function(module, exports) {
+
+module.exports = function(url, Rx) {
+  var timer, rc = 0,
+    poller;
+
+  function createConnection(url, data, Receiver) {
+    return new Promise(function(resolve, reject) {
+      var verb = (!data || data == '') ? 'GET' : 'POST';
+      var xhr = new XMLHttpRequest();
+      xhr.addEventListener("readystatechange", function(e) {
+        if (this.readyState == 4) {
+          if (this.status == 200) {
+            resolve(this.response);
+          }
+          else {
+            this.abort();
+            reject(this.status + ': Request Error');
+          }
+        }
+      });
+      xhr.addEventListener("error", function(e) {
+        this.abort();
+        reject(e);
+      });
+      xhr.timeout = 30000;
+      xhr.addEventListener("timeout", function() {
+        if ((this.readyState > 0) && (this.readyState < 4))
+          this.abort();
+        reject(new Error("Request timed out!"));
+      });
+      xhr.responseType = 'json';
+      (xhr.executesession = function() {
+        xhr.open(verb, encodeURI(url), true);
+        if (verb == 'POST') xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(data || '');
+      })();
+    }).then(function(res) {
+      Receiver(res);
+    }).catch(function(err) {
+      console.error(err);
+      Receiver(false);
+      rc++;
+      return err;
+    });
+  };
+
+  url = (url.search(/^https?:\/\//i) < 0) ?
+    url.replace(/^[^:]+:/i, "http:") :
+    url;
+
+  (function poller() {
+    createConnection(url, '', Rx)
+      .then(function() {
+        timer = setTimeout(poller, 2000);
+      })
+      .catch(function() {
+        if (rc > 5) {
+          clearTimeout(timer);
+          console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
+        }
+        else {
+          console.error("Reconnecting attempt " + rc);
+          timer = setTimeout(poller, 2000);
+        }
+      });
+  })();
+
+  function Post(d) {
+    createConnection(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
+  }
+  return Post;
+};
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports) {
+
+module.exports = function(url, Rx) {
+  var ct,
+    rt,
+    rc = 0,
+    ec = 0;
+
+  function connect() {
+    return new Promise(function(resolve, reject) {
+      function ConnectionTimeout() {
+        socket.close();
+        reject(new Error("WS: Connection attempt failure"));
+      }
+
+      var socket = new WebSocket(url);
+      ct = setTimeout(ConnectionTimeout, 9000);
+      console.log("WS:New connection to " + url);
+      socket.onclose = function(e) {
+        console.log("WS:Connection to " + url + " closed.");
+      };
+      socket.onopen = function(e) {
+        clearTimeout(ct);
+        rc = 0;
+        if (e.data) {
+          Rx(e.data);
+        }
+        resolve(socket);
+      };
+      socket.onerror = function(error) {
+        console.error(error);
+        ec++;
+        if (ec > 5) {
+          socket.close();
+          console.log("WS:Too many errors. Reconnecting");
+          reject(error);
+          ec = 0;
+        }
+      };
+      socket.onmessage = function(e) {
+        Rx(e.data);
+      };
+    });
+  }
+
+  function createConnection() {
+    return connect()
+      .catch(function(err) {
+        return new Promise(function(resolve, reject) {
+          if (rc > 5) reject(new Error("WS:Socket connection lost. Reconnection constantly failing. Try reloading page."));
+          else {
+            console.error(err);
+            rc++;
+            rt = setInterval(resolve, 10000);
+          }
+        })
+          .then(createConnection)
+          .catch(console.error);
+      });
+  }
+
+  var connection = createConnection();
+
+  return function(d) {
+    connection.then(function(socket) {
+      socket.send(
+        (typeof d !== "string") ?
+          JSON.stringify(d) :
+          d
+      );
+    });
+  };
+};
+
+/***/ }),
 /* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var elementfactory = __webpack_require__(3).element;
+var elementfactory = __webpack_require__(1).element;
 
 function getElements(id,el){
   var r=[];
@@ -746,52 +727,7 @@ module.exports = function(){
 /* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
-
-function workerFunction(url) {
-  var sendToServer;
-  onmessage = function(e) {
-    if (sendToServer) {
-      sendToServer(e.data || e);
-    } else {
-      postMessage("");
-    }
-  };
-  function respHandler(res) {
-    if (res) {
-      postMessage(res);
-    } else {
-      postMessage("false")
-    }
-    ;
-  }
-  if (((/^wss?:\/\//i).test(url)) && WebSocket) {
-    sendToServer = __webpack_require__(1)(url, respHandler);
-  } else {
-    sendToServer = __webpack_require__(0)(url, respHandler);
-  }
-}
-;
-
-module.exports.code = function(url) {
-  var code = workerFunction.toString();
-  var re = /([a-zA-Z_]*require[_]*)\(([^()]*)\)[^({ ;]*/m;
-  var m;
-  while ((m = re.exec(code)) !== null) {
-    if (m.index === re.lastIndex) re.lastIndex++;
-
-    var p = code.split(m[0]);
-    var i = eval(m[0] + ".toString()");
-    code = p.join("(" + i + ")");
-  }
-  return ["(" + code + ")(\"" + url + "\")"];
-};
-
-
-/***/ }),
-/* 8 */
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = __webpack_require__(2);
+module.exports = __webpack_require__(0);
 
 
 /***/ })

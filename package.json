@@ -2,7 +2,7 @@
   "author": "Anton Yashchuk <anton.yashchuk@gmail.com>",
   "name": "seamless",
   "description": "seamlessly (and asyncronously) work with remote objects",
-  "version": "0.0.2-alpha",
+  "version": "0.0.1-alpha",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
     "karma-jasmine": "^1.1.0",
     "karma-phantomjs-launcher": "^1.0.4",
     "karma-promise": "^0.1.0",
+    "karma-spec-reporter": "0.0.31",
     "karma-webpack": "^2.0.3",
     "phantomjs-prebuilt": "^2.1.14",
     "promise-polyfill": "^6.0.2",

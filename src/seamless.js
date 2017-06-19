@@ -34,12 +34,12 @@ function ComplementUrl(url) {
 
 module.exports = exports = Seamless = window.Seamless = {
 
-  compile: function(dom,config) {
+  compile: function(dom) {
     var seamlessElements = dom.querySelectorAll("*[data-seamless]");
     var connections = [];
     for (var i = 0; i < seamlessElements.length; i++) {
       var el = seamlessElements[i];
-      connections.push(this.with(el.dataset.seamless,config).bindClients(el));
+      connections.push(this.with(el.dataset.seamless).bindClients(el));
     }
     return Promise.all(connections);
   },
@@ -49,8 +49,7 @@ module.exports = exports = Seamless = window.Seamless = {
     return this.connections[md5(url)] || false;
   },
 
-  with: function(endpoint, config) { // connection object closure
-    var conf = config || {};
+  with: function(endpoint) { // connection object closure
     var url = ComplementUrl(endpoint);
     var rh = md5(url),
       connection,
@@ -115,31 +114,13 @@ module.exports = exports = Seamless = window.Seamless = {
         });
       }
 
-      if (Worker && !conf.noWorker) {
-        transmitter = (function(receiver) {
-          var worker = new Worker(
-            URL.createObjectURL(
-              new Blob(require("./worker.js").code(url))
-            )
-          );
-          worker.onerror = function(e) {
-            //worker.terminate();
-            error(e);
-          };
-          worker.onmessage = receiver;
-          return function(data) {
-            worker.postMessage(data)
-          };
-        })(Receive);
-      } else {
-        transmitter = (function(callback) {
-          if (!(url.search(/^wss?:\/\//i) < 0) && WebSocket) {
-            return require("./psocket.js")(url, callback);
-          } else {
-            return require("./poller.js")(url, callback);
-          }
-        })(Receive);
-      }
+      transmitter = (function(callback) {
+        if (!(url.search(/^wss?:\/\//i) < 0) && WebSocket) {
+          return require("./psocket.js")(url, callback);
+        } else {
+          return require("./poller.js")(url.replace(/^ws/, "http"), callback);
+        }
+      })(Receive);
 
       Transmit = function(data) {
         bufferedHandle(data, transmitter);
