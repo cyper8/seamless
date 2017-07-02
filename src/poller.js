@@ -33,7 +33,7 @@ module.exports = function(url, Rx) {
         xhr.send(data || '');
       })();
     }).then(function(res) {
-      Receiver(res);
+      if (res != "") Receiver(res);
     }).catch(function(err) {
       console.error(err);
       Receiver(false);
