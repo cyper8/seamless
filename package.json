@@ -16,8 +16,7 @@
     "express": "^4.14.0",
     "express-ws": "^2.0.0",
     "helmet": "^2.3.0",
-    "mongoose": "^4.10.4",
-    "url-parse": "^1.1.9"
+    "mongoose": "^4.10.4"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^4.0.1",
@@ -39,6 +38,7 @@
     "build": "webpack",
     "release": "NODE_ENV=production webpack",
     "test": "karma start --single-run",
-    "test-server": "karma start"
+    "test-server": "karma start",
+    "example": "node debug examples/server.js"
   }
 }

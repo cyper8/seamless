@@ -75,7 +75,13 @@ app.use(bodyParser.urlencoded({
 
 app.use('/gtest/:_id', function(req, res, next) {
   if (req.method == 'GET') {
-    res.send(store.serialize(store.getData(req.params._id)));
+    if (req.query.nopoll) {
+      res.send(store.serialize(store.getData(req.params._id)));
+    } else {
+      setTimeout(function() {
+        res.send(store.serialize(store.getData(req.params._id)));
+      }, 29000);
+    }
   } else if (req.method == 'POST') {
     res.send(store.serialize(store.setData(req.params._id, req.body)));
   }

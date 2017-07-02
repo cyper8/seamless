@@ -430,10 +430,10 @@ module.exports = function() {
 /***/ (function(module, exports) {
 
 module.exports = function(url, Rx) {
-  var timer, rc = 0,
-    poller;
+  var timer,
+    rc = 0;
 
-  function createConnection(url, data, Receiver) {
+  function request(url, data, Receiver) {
     return new Promise(function(resolve, reject) {
       var verb = (!data || data == '') ? 'GET' : 'POST';
       var xhr = new XMLHttpRequest();
@@ -441,8 +441,7 @@ module.exports = function(url, Rx) {
         if (this.readyState == 4) {
           if (this.status == 200) {
             resolve(this.response);
-          }
-          else {
+          } else {
             this.abort();
             reject(this.status + ': Request Error');
           }
@@ -472,31 +471,33 @@ module.exports = function(url, Rx) {
       rc++;
       return err;
     });
-  };
+  }
 
   url = (url.search(/^https?:\/\//i) < 0) ?
     url.replace(/^[^:]+:/i, "http:") :
     url;
 
-  (function poller() {
-    createConnection(url, '', Rx)
+  function poller() {
+    request(url, '', Rx)
       .then(function() {
-        timer = setTimeout(poller, 2000);
+        timer = setTimeout(poller, 1000);
       })
       .catch(function() {
         if (rc > 5) {
           clearTimeout(timer);
           console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
-        }
-        else {
+        } else {
           console.error("Reconnecting attempt " + rc);
-          timer = setTimeout(poller, 2000);
+          timer = setTimeout(poller, 1000);
         }
       });
-  })();
+  }
+
+  request(url + '?nopoll=true', '', Rx)
+    .then(poller, poller);
 
   function Post(d) {
-    createConnection(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
+    request(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
   }
   return Post;
 };

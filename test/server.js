@@ -1,4 +1,4 @@
-
+var Urlparse = require("url").parse;
 function DataStore() {
   var store = require("./seed.json");
 
@@ -64,11 +64,18 @@ function DataStore() {
 module.exports = function(options) {
   var store = DataStore();
   return function(req, res, next) {
-    var url = req.url.split("/").reverse();
-    if (url[1] == 'gtest') {
-      var id = url[0];
+    var url = Urlparse(req.url, true);
+    var path = url.pathname.split("/").reverse();
+    if (path[1] == 'gtest') {
+      var id = path[0];
       if (req.method == 'GET') {
-        res.end(store.serialize(store.getData(id)));
+        if (url.query.nopoll) {
+          res.end(store.serialize(store.getData(id)));
+        } else {
+          setTimeout(function() {
+            res.end(store.serialize(store.getData(id)))
+          }, 29000);
+        }
       } else if (req.method == 'POST') {
         res.end(store.serialize(store.setData(id, req.body)));
       }
