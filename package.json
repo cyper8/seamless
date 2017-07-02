@@ -11,12 +11,13 @@
   "main": "bin/seamless-client.min.js",
   "module": "src/seamless.js",
   "dependencies": {
-    "basic-library": "git+https://github.com/cyper8/basic-library.git",
+    "basic-library": "git+https://github.com/cyper8/basic-library.git"
+  },
+  "devDependencies": {
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "express-ws": "^2.0.0",
-    "helmet": "^2.3.0",
-    "mongoose": "^4.10.4"
+    "helmet": "^2.3.0"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^4.0.1",
