@@ -15,12 +15,10 @@
   },
   "devDependencies": {
     "body-parser": "^1.15.2",
+    "copy-webpack-plugin": "^4.0.1",
     "express": "^4.14.0",
     "express-ws": "^2.0.0",
-    "helmet": "^2.3.0"
-  },
-  "devDependencies": {
-    "copy-webpack-plugin": "^4.0.1",
+    "helmet": "^2.3.0",
     "jasmine": "^2.6.0",
     "karma": "^1.7.0",
     "karma-chrome-launcher": "^2.1.1",
@@ -30,16 +28,18 @@
     "karma-promise": "^0.1.0",
     "karma-spec-reporter": "0.0.31",
     "karma-webpack": "^2.0.3",
+    "mongoose": "^4.11.1",
     "phantomjs-prebuilt": "^2.1.14",
     "promise-polyfill": "^6.0.2",
+    "seamless-mongoose-plugin": "git+https://github.com/cyper8/seamless-mongoose-plugin.git",
     "uglifyjs-webpack-plugin": "^0.4.3",
     "webpack": "^2.6.1"
   },
   "scripts": {
     "build": "webpack",
-    "release": "NODE_ENV=production webpack",
+    "release": "npm run build && NODE_ENV=production webpack",
     "test": "karma start --single-run",
     "test-server": "karma start",
-    "example": "node debug examples/server.js"
+    "example": "npm run build && node --inspect=${C9_HOSTNAME:-127.0.0.1}:8081 examples/index.js"
   }
 }

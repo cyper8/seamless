@@ -1,4 +1,4 @@
-/* global Seamless, expect, beforeEach, afterEach */
+/* global Seamless, expect, beforeAll, afterAll */
 
 function SyncTest(data, transmitter) {
   this.innerText = JSON.stringify(data);
@@ -15,19 +15,21 @@ function SyncTest(data, transmitter) {
   }
 }
 
-var element;
-beforeEach(function(done) {
-  element = document.createElement("div");
-  element.dataset.seamless = "/gtest/0100";
-  document.body.appendChild(element);
-  element = document.createElement("div");
-  element.dataset.seamless = "/gtest/0101";
-  element.dataset.sync = "SyncTest";
-  document.body.appendChild(element);
+var element1,
+  element2;
+
+beforeAll(function(done) {
+  element1 = document.createElement("div");
+  element1.setAttribute("data-seamless", "/gtest/0100");
+  document.body.appendChild(element1);
+  element2 = document.createElement("div");
+  element2.setAttribute("data-seamless", "/gtest/0101");
+  element2.setAttribute("data-sync", "SyncTest");
+  document.body.appendChild(element2);
   Seamless.compile(document.body).then(done);
 });
 
-afterEach(function() {
+afterAll(function() {
   document.body.innerHTML = "";
 });
 
@@ -39,19 +41,24 @@ describe("Seamless", function() {
       expect(Seamless.connections[c].clients.length).toBe(1);
       n++;
     }
-    ;
     expect(n).toBe(2);
   });
-  it("has one client populated by default sync", function() {
-    var elem = Seamless.getConnection("/gtest/0100").clients[0];
-    expect(elem.children.length).toBe(4);
-    expect(elem.getAttribute("_id")).toBe("0100");
-    expect(elem.getAttribute("hoverable")).toBe("false");
+  it("has one client populated by default sync", function(done) {
+    function Tests() {
+      expect(element1.children.length).toBe(4);
+      expect(element1.getAttribute("_id")).toBe("0100");
+      expect(element1.getAttribute("hoverable")).toBe("false");
+      done();
+    }
+    element1.connection.then(Tests);
   });
-  it("has other client populated by SyncTest function", function() {
-    var elem = Seamless.getConnection("/gtest/0101").clients[0];
-    expect(elem.children.length).toBe(0);
-    expect(elem.innerText).toMatch(/0101/);
-    expect(elem.seamless).toMatch(/SyncTest/);
-  })
+  it("has other client populated by SyncTest function", function(done) {
+    function Tests() {
+      expect(element2.children.length).toBe(0);
+      expect(element2.innerText).toMatch(/0101/);
+      expect(element2.seamless).toMatch(/SyncTest/);
+      done();
+    }
+    element2.connection.then(Tests);
+  });
 });

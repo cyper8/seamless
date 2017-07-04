@@ -29,11 +29,12 @@ module.exports = function(url, Rx) {
       xhr.responseType = 'json';
       (xhr.executesession = function() {
         xhr.open(verb, encodeURI(url), true);
+        xhr.setRequestHeader('Accept', 'application/json');
         if (verb == 'POST') xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.send(data || '');
       })();
     }).then(function(res) {
-      if (res != "") Receiver(res);
+      if (res) Receiver(res);
     }).catch(function(err) {
       console.error(err);
       Receiver(false);

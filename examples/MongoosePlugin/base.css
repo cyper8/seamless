@@ -1,0 +1,16 @@
+div[data-seamless] div {
+  display: block;
+  background-color: #aaa;
+  border-radius: 4px;
+  margin: 5px;
+  padding: 5px;
+  min-height: 5em;
+}
+div[data-seamless] input {
+  display: block;
+  background-color: #aaa;
+  border-radius: 4px;
+  margin: 5px;
+  padding: 5px;
+  min-height: 5em;
+}

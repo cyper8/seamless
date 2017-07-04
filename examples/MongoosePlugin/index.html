@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Seamless Tests</title>
+    <link rel="stylesheet" type="text/css" href="/base.css" />
+    <script type="text/javascript" src="/seamless-client.js"></script>
+  </head>
+  <body>
+    <div data-seamless="/gtest/5936b88f734d1d2b1e931d78"></div>
+    <div data-seamless="/gtest/5936b8bf734d1d2b1e931d9b"></div>
+    <div data-sync="SyncTest" data-seamless="/gtest/5936b8cd734d1d2b1e931daa"></div>
+    <div data-seamless="/gtest/5936b8d8734d1d2b1e931db4">
+      <input type=text id="message"></input>
+    </div>
+  </body>
+  <script type="text/javascript">
+    function SyncTest(data, transmitter) {
+      this.innerText = JSON.stringify(data);
+      if (transmitter) {
+        this.addEventListener('click', function(e) {
+          if (data.count > 0) data.count--;
+          transmitter(data);
+        });
+        this.addEventListener('contextmenu', function(e) {
+          if (data.count < 3) data.count++;
+          transmitter(data);
+          e.preventDefault();
+        })
+      }
+    }
+    
+    window.addEventListener('load', function() {
+      Seamless.compile(document.body);
+    });
+  </script>
+</html>

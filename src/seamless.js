@@ -21,13 +21,21 @@ function getBufferByURLHash(urlhash) {
 }
 
 function ComplementUrl(url) {
-  var s;
+  var s,
+    p = url.split(":");
+  if (p.length > 1 && p.length == 2)
+    url = ComplementUrl(p[1]);
+  else
+    url = false;
   if (!url)
     throw Error("Unrecognized url: " + url);
   if (url.charAt(0) == "/") {
     s = window.location.origin + "" + url;
   } else {
-    s = window.location.href + "/" + url;
+    s = (window.location.href + "/" + url);
+  }
+  if (p[1]) {
+    s.replace(/^.*:/, p[0] + ":");
   }
   return s;
 }
@@ -62,7 +70,7 @@ module.exports = exports = Seamless = window.Seamless = {
 
     buffer = getBufferByURLHash(rh);
 
-    InitConnection = new Promise(function(success, error) {
+    InitConnection = new Promise(function(resolve, reject) {
       var transmitter,
         Transmit,
         Receive;
@@ -100,9 +108,9 @@ module.exports = exports = Seamless = window.Seamless = {
         var data = (res.data) ? res.data : res;
         if (data && data != "false") {
           bufferedHandle(data, ToDOM);
-          success(Transmit);
+          resolve(Transmit);
         } else {
-          error(new Error("Connection lost."));
+          reject(new Error("Connection lost."));
         }
       };
 
@@ -146,44 +154,44 @@ module.exports = exports = Seamless = window.Seamless = {
         if (!(elems instanceof Array))
           elems = [elems];
         elems.forEach(function(e, i, a) {
-          e.connecting = InitConnection.then(function(transmit) {
-
-            function SeamlessDataChangeEventHandler(evt) {
-              transmit(buffer);
-              evt.stopPropagation();
-            }
-
-            if (e instanceof HTMLElement) {
-              e.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
-              if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
-                e.seamless = window[e.dataset.sync].bind(e);
-              } else {
-                e.seamless = sync.bind(e);
+          e.connection = InitConnection
+            .then(function(transmit) {
+              function SeamlessDataChangeEventHandler(evt) {
+                transmit(buffer);
+                evt.stopPropagation();
               }
-              e.deseamless = function() {
-                this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
-                delete this.seamless;
-              }.bind(e);
-              e.seamless(buffer, transmit);
-            } else {
-              if (typeof e === "object") {
-                //TODO: seamless client-side reciever is a JS object
-                e.__defineGetter__("status", function() {
-                  return buffer
-                });
-                e.__defineSetter__("status", transmit);
-              } else if (typeof e === "function") {
-                a[i] = {
-                  seamless: e,
-                  deseamless: function() {
-                    delete this.seamless;
+              if (e instanceof HTMLElement) {
+                e.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+                if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
+                  e.seamless = window[e.dataset.sync].bind(e);
+                } else {
+                  e.seamless = sync.bind(e);
+                }
+                e.deseamless = function() {
+                  this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+                  delete this.seamless;
+                  delete this.connection;
+                }.bind(e);
+                e.seamless(buffer, transmit);
+              } else {
+                if (typeof e === "object") {
+                  e.__defineGetter__("status", function() {
+                    return buffer
+                  });
+                  e.__defineSetter__("status", transmit);
+                } else if (typeof e === "function") {
+                  a[i] = {
+                    seamless: e,
+                    deseamless: function() {
+                      delete this.seamless;
+                      delete this.connection;
+                    }
                   }
                 }
+                e.status = buffer;
               }
-              e.status = buffer;
-            }
-            delete e.connecting;
-          })
+              return transmit;
+            })
             .catch(function(err) {
               throw err
             });
