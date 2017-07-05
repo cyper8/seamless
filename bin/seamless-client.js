@@ -94,19 +94,22 @@ function getBufferByURLHash(urlhash) {
 }
 
 function ComplementUrl(url) {
-  var s,
-    p;
-  if (!url)
-    throw Error("Unrecognized url: " + url);
-  if (url.charAt(0) == "/") {
-    s = window.location.origin + "" + url;
+  var proto,
+    host,
+    p = url.split("/");
+  if (p[0].search(/:$/) == -1) {
+    proto = window.location.protocol + "//";
   } else {
-    s = (window.location.href + "/" + url);
-    if ((p = url.split(":")).length > 1) {
-      s.replace(/^.*:/, p[0] + ":");
-    }
+    proto = p[0] + "//";
+    p = p.slice(2);
   }
-  return s;
+  if ((p.length == 1) || (p[0].search(/^[a-z][a-z0-9]*\./i) == -1)) {
+    host = window.location.host;
+    if (p[0] == "") p.shift();
+  } else {
+    host = p.shift();
+  }
+  return proto + host + "/" + p.join("/");
 }
 
 module.exports = exports = Seamless = window.Seamless = {
