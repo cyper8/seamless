@@ -20,10 +20,10 @@ var element1,
 
 beforeAll(function(done) {
   element1 = document.createElement("div");
-  element1.setAttribute("data-seamless", "/gtest/0100");
+  element1.setAttribute("data-seamless", "/gtest/100000000000000000000000");
   document.body.appendChild(element1);
   element2 = document.createElement("div");
-  element2.setAttribute("data-seamless", "/gtest/0101");
+  element2.setAttribute("data-seamless", "/gtest/100000000000000000000001");
   element2.setAttribute("data-sync", "SyncTest");
   document.body.appendChild(element2);
   Seamless.compile(document.body).then(done);
@@ -46,7 +46,7 @@ describe("Seamless", function() {
   it("has one client populated by default sync", function(done) {
     function Tests() {
       expect(element1.children.length).toBe(4);
-      expect(element1.getAttribute("_id")).toBe("0100");
+      expect(element1.getAttribute("_id")).toBe("100000000000000000000000");
       expect(element1.getAttribute("hoverable")).toBe("false");
       done();
     }
@@ -55,7 +55,7 @@ describe("Seamless", function() {
   it("has other client populated by SyncTest function", function(done) {
     function Tests() {
       expect(element2.children.length).toBe(0);
-      expect(element2.innerText).toMatch(/0101/);
+      expect(element2.innerText).toMatch(/100000000000000000000001/);
       expect(element2.seamless).toMatch(/SyncTest/);
       done();
     }
