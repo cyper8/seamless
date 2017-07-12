@@ -8,7 +8,7 @@
   </head>
   <body>
     <div data-seamless="/gtest/100000000000000000000000"></div>
-    <div data-seamless="wss:///test/100000000000000000000001"></div>
+    <div data-seamless="ws:///test/100000000000000000000001"></div>
     <div data-sync="SyncTest" data-seamless="/gtest/100000000000000000000002"></div>
     <div data-seamless="/gtest/100000000000000000000003">
       <input type=text id="message"></input>
@@ -29,7 +29,7 @@
         })
       }
     }
-    
+
     window.addEventListener('load', function() {
       Seamless.compile(document.body);
     });

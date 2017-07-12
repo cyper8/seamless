@@ -41,3 +41,4 @@ package.sublime-workspace
 
 #mongodb auth
 examples/MongoosePlugin/.testdburl
+test/.env
