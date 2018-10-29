@@ -1,59 +1,41 @@
-module.exports = function(url, Rx) {
-  var ct, rt, rc = 0,
-    ec = 0;
-  var Tx = (function createConnection(success) {
-    var socket = new WebSocket(url);
-    ct = setTimeout(socket.close, 9000);
-    console.log("New connection to " + url);
-    socket.onclose = function(e) {
-      console.log("Connection to " + url + " closed.");
-    };
-    socket.onopen = function(e) {
-      clearTimeout(ct);
-      rc = 0;
-      if (e.data) {
-        Response(e.data);
-      }
-    };
-    socket.onerror = function(err) {
-      console.error(err);
-      ec++;
-      if (ec > 10) {
-        socket.close();
-        console.log("Too many errors. Reconnecting");
+export function socket(url, Rx) {
+  var rt;
+  var rc = 0;
+  var ec = 0;
+  var connect = (function reconnect() {
+    return new Promise(function (resolve, reject) {
+      var socket = new WebSocket(url);
+      rt = setTimeout(socket.close, 9000);
+      socket.onclose = function (e) {
+        clearTimeout(rt);
+        rc++;
+        if (rc < 5)
+          connect = reconnect();
+        else
+          reject(url + ' does not answer');
+      };
+      socket.onerror = function (e) {
+        console.error(e);
+        ec++;
+        if (ec > 10) {
+          ec = 0;
+          socket.close();
+        }
+      };
+      socket.onopen = function (e) {
+        clearTimeout(rt);
+        rc = 0;
         ec = 0;
-      }
-    };
-    socket.onmessage = function(e) {
-      Response(e.data);
-    };
-
-    function Response(res) {
-      success(res);
-    }
-    if (!rt) { // WATCHDOG
-      rt = setInterval(
-        function() {
-          if (socket) {
-            if (socket.readyState == 3) { // CLOSED
-              Tx = createConnection(success);
-              rc++;
-            }
-          }
-          if (rc > 5) {
-            clearInterval(rt);
-            alert(" Socket connection lost. Reconnection constantly failing. Try reloading page.") ||
-              success(false);
-          }
-        }, 10000);
-    }
-    return function(d) {
-      socket.send(
-        (typeof d !== "string") ?
-        JSON.stringify(d) :
-        d
-      )
-    };
-  })(Rx);
-  return Tx;
-};
+        resolve(socket);
+      };
+      socket.onmessage = function (e) {
+        Rx(e.data);
+      };
+    })["catch"](console.error);
+  })();
+  return function Tx(data) {
+    connect.then(function (active_socket) {
+      active_socket.send(data);
+    });
+  };
+}

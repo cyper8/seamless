@@ -1,8 +1,6 @@
 /*  global localStorage, CustomEvent  */
 
-
-
-module.exports = function(){
+export default function storage() {
   
   function storageAvailable(type) {
   	try {

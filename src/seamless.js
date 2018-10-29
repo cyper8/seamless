@@ -1,9 +1,8 @@
 /* global URL, Blob, Worker, HTMLElement */
-var storage = require("./storage.js")(),
-  md5 = require("./md5.js")(),
-  sync = require("./ssync.js"),
-  Seamless;
-
+import { storage } from "./storage.js";
+import { md5 } from './md5.js';
+import { bind } from "./ssync.js";
+import { socket } from './socket.js';
 
 function getBufferByURLHash(urlhash) {
   var dh,
@@ -39,7 +38,7 @@ function ComplementUrl(url) {
   return proto + host + "/" + p.join("/");
 }
 
-module.exports = exports = Seamless = window.Seamless = {
+export const Seamless = {
 
   compile: function(dom) {
     var seamlessElements = dom.querySelectorAll("*[data-seamless]");
@@ -123,7 +122,7 @@ module.exports = exports = Seamless = window.Seamless = {
 
       transmitter = (function(callback) {
         if (!(url.search(/^wss?:\/\//i) < 0) && WebSocket) {
-          return require("./psocket.js")(url, callback);
+          return socket(url, callback);
         } else {
           return require("./poller.js")(url.replace(/^ws/, "http"), callback);
         }
@@ -164,7 +163,7 @@ module.exports = exports = Seamless = window.Seamless = {
                 if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
                   e.seamless = window[e.dataset.sync].bind(e);
                 } else {
-                  e.seamless = sync.bind(e);
+                  e.seamless = bind(e);
                 }
                 e.deseamless = function() {
                   this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);

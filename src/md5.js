@@ -1,4 +1,4 @@
-module.exports = function() {
+export default function md5() {
 
     function t(e, t) {
         var n = (e & 65535) + (t & 65535),
