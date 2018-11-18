@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "outDir": "../bin",
+    "target": "es6",
+    "noImplicitAny": false,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": [
+    "./**/*"
+  ],
+  "exclude": [
+    "../node_modules"
+  ]
+}

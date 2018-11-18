@@ -1,10 +1,8 @@
-"use strict";
-exports.__esModule = true;
-function socket(url, Rx) {
-    var rt;
-    var rc = 0;
-    var ec = 0;
-    var connect = (function reconnect() {
+export function socket(url, Rx) {
+    let rt;
+    let rc = 0;
+    let ec = 0;
+    let connect = (function reconnect() {
         return new Promise(function (resolve, reject) {
             var socket = new WebSocket(url);
             rt = window.setTimeout(socket.close, 9000);
@@ -41,4 +39,4 @@ function socket(url, Rx) {
         });
     };
 }
-exports.socket = socket;
+//# sourceMappingURL=socket.js.map

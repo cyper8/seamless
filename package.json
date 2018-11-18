@@ -32,10 +32,9 @@
     "karma-promise": "^0.1.0",
     "karma-spec-reporter": "0.0.31",
     "karma-webpack": "^2.0.3",
-    "mongoose": "^4.11.1",
     "phantomjs-prebuilt": "^2.1.14",
     "promise-polyfill": "^6.0.2",
-    "seamless-mongoose-plugin": "git+https://github.com/cyper8/seamless-mongoose-plugin.git",
+    "typescript": "^3.1.6",
     "uglifyjs-webpack-plugin": "^0.4.3",
     "webpack": "^2.6.1"
   },
