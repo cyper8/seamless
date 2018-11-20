@@ -1,7 +1,5 @@
-"use strict";
 /*  global localStorage, CustomEvent  */
-exports.__esModule = true;
-function storage() {
+export function storage() {
     function storageAvailable(type) {
         try {
             var storage = window[type], x = '__storage_test__';
@@ -73,4 +71,4 @@ function storage() {
         });
     }
 }
-exports.storage = storage;
+//# sourceMappingURL=storage.js.map

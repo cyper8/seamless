@@ -19,7 +19,10 @@ var plugins = [
 ];
 
 if (env === "production") {
-  var plugins = plugins.concat([new UglifyJSPlugin()]);
+  var optimization = { minimizer: [new UglifyJSPlugin()] };
+}
+else {
+  var optimization = {};
 }
 
 var resolve = {
@@ -34,6 +37,7 @@ module.exports = [
     target: 'web',
     //devtool: 'inline-source-map',
     plugins: plugins,
+    optimization,
     output: {
       path: `${__dirname}/bin`,
       library: 'Seamless',

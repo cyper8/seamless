@@ -1,20 +1,18 @@
-"use strict";
-exports.__esModule = true;
-function socket(url, Rx) {
-    var rt;
-    var rc = 0;
-    var ec = 0;
-    var connect = (function reconnect() {
-        return new Promise(function (resolve, reject) {
+export function socket(url, Rx) {
+    let t;
+    let rc = 0;
+    let ec = 0;
+    let connect = (function reconnect() {
+        return new Promise(function (resolve) {
             var socket = new WebSocket(url);
-            rt = window.setTimeout(socket.close, 9000);
+            t = window.setTimeout(socket.close, 9000);
             socket.onclose = function () {
-                clearTimeout(rt);
+                clearTimeout(t);
                 rc++;
                 if (rc < 5)
                     connect = reconnect();
                 else
-                    reject(url + ' does not answer');
+                    throw new Error(url + ' does not answer');
             };
             socket.onerror = function (e) {
                 console.error(e);
@@ -25,7 +23,7 @@ function socket(url, Rx) {
                 }
             };
             socket.onopen = function () {
-                clearTimeout(rt);
+                clearTimeout(t);
                 rc = 0;
                 ec = 0;
                 resolve(socket);
@@ -41,4 +39,4 @@ function socket(url, Rx) {
         });
     };
 }
-exports.socket = socket;
+//# sourceMappingURL=socket.js.map

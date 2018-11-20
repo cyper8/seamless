@@ -1,6 +1,4 @@
-"use strict";
-exports.__esModule = true;
-function poller(url, Rx) {
+export function poller(url, Rx) {
     var timer, rc = 0;
     function request(url, data, Receiver) {
         return new Promise(function (resolve, reject) {
@@ -36,7 +34,7 @@ function poller(url, Rx) {
         }).then(function (res) {
             if (res)
                 Receiver(res);
-        })["catch"](function (err) {
+        }).catch(function (err) {
             console.error(err);
             Receiver(false);
             rc++;
@@ -50,7 +48,8 @@ function poller(url, Rx) {
         request(url, '', Rx)
             .then(function () {
             timer = setTimeout(poll, 1000);
-        })["catch"](function () {
+        })
+            .catch(function () {
             if (rc > 5) {
                 clearTimeout(timer);
                 console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
@@ -68,4 +67,4 @@ function poller(url, Rx) {
     }
     return Post;
 }
-exports.poller = poller;
+//# sourceMappingURL=poller.js.map

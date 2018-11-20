@@ -1,9 +1,7 @@
-"use strict";
-exports.__esModule = true;
-function ComplementUrl(url) {
-    var proto;
-    var host;
-    var p = url.split("/");
+export function ComplementUrl(url) {
+    let proto;
+    let host;
+    let p = url.split("/");
     if (p[0].search(/:$/) == -1) {
         proto = window.location.protocol + "//";
     }
@@ -21,4 +19,4 @@ function ComplementUrl(url) {
     }
     return proto + host + "/" + p.join("/");
 }
-exports.ComplementUrl = ComplementUrl;
+//# sourceMappingURL=complement-url.js.map

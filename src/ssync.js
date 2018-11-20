@@ -1,13 +1,11 @@
-"use strict";
-exports.__esModule = true;
-var Element_js_1 = require("../node_modules/basic-library/src/UI/Element.js");
-var debounced_js_1 = require("./utils/debounced.js");
+import { element as elementfactory } from '../node_modules/basic-library/src/UI/Element.js';
+import { Debounced } from './utils/debounced.js';
 function getElements(id, el) {
     var r = [];
     for (var i = 0; i < el.length; i++) {
         var e = el[i].querySelectorAll("#" + id);
         if (e.length == 0) {
-            (e = []).push(el[i].appendChild(Element_js_1.element("div#" + id)));
+            (e = []).push(el[i].appendChild(elementfactory("div#" + id)));
         }
         for (var j = 0; j < e.length; j++) {
             r.push(e[j]);
@@ -15,7 +13,7 @@ function getElements(id, el) {
     }
     return r;
 }
-function SeamlessSync(data) {
+export function SeamlessSync(data) {
     var key;
     for (key in data) {
         if ((key == "_id") || (typeof data[key] === "boolean")) {
@@ -29,7 +27,7 @@ function SeamlessSync(data) {
                         if (e instanceof HTMLInputElement) {
                             e.value = data[key];
                             if (!e.onchange) {
-                                e.onchange = debounced_js_1.Debounced(function () {
+                                e.onchange = Debounced(function () {
                                     data[this.id] = this.value;
                                     this.dispatchEvent(new CustomEvent('seamlessdatachange', { bubbles: true }));
                                 }, 1000);
@@ -47,4 +45,4 @@ function SeamlessSync(data) {
         }
     }
 }
-exports.SeamlessSync = SeamlessSync;
+//# sourceMappingURL=ssync.js.map

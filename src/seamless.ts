@@ -5,6 +5,7 @@ import { poller } from './poller';
 import { ComplementUrl } from './utils/complement-url.js';
 import { md5 as md5_mod } from './md5.js';
 
+
 declare interface Connection {
     url: string
     hashes: {
@@ -13,13 +14,13 @@ declare interface Connection {
     }
     data: Object
     clients: Array<SeamlessObject | SeamlessElement>
-    bindClients(elements: Array<SeamlessObject | SeamlessElement> | SeamlessObject | SeamlessElement): Promise<Function>
-    unbindClients(elements?: Array<SeamlessObject | SeamlessElement> | SeamlessObject | SeamlessElement): Promise<Function>
+    bindClients(elements: Array<SeamlessObject | SeamlessElement> | SeamlessObject | SeamlessElement): Connection
+    unbindClients(elements?: Array<SeamlessObject | SeamlessElement> | SeamlessObject | SeamlessElement): Connection
 }
 
 declare interface Seamless {
     connections: Object
-    compile(root: HTMLElement): Promise<Array<Connection>>
+    compile(root: HTMLElement): Array<Connection>
     getConnection(url: string): Connection
     connect(endpoint: string): Connection
     disconnect(endpoint: string): void
@@ -28,7 +29,7 @@ declare interface Seamless {
 declare interface SeamlessObject extends Object {
   seamless: Function
   deseamless: Function
-  connection: Promise<Function>
+  connection: Connection
   status: Object
 }
 
@@ -42,12 +43,12 @@ export function Seamless(): Seamless {
   const storage = storage_f();
 
   function getBufferByURLHash(urlhash: string): Object {
-    let dh: string = storage.getItem(urlhash);
+    let h: string = storage.getItem(urlhash);
     let d: Object;
 
-    if (dh) {
+    if (h) {
       try {
-        d = JSON.parse(storage.getItem(dh));
+        d = JSON.parse(storage.getItem(h));
       } catch (err) {
         throw err;
       }
@@ -62,15 +63,7 @@ export function Seamless(): Seamless {
     let url: string = ComplementUrl(endpoint);
     let rh: string = md5(url);
     let connection: Connection;
-    // let connection: Connection = this.getConnection(url);
     let buffer: Object = getBufferByURLHash(rh);
-    let InitConnection: Promise<Function>;
-
-    // if (connection) return connection;
-
-    // new connection
-
-    InitConnection = new Promise(function(resolve) {
       let transmitter: Function;
       let Transmit: Function;
       let Receive: Function;
@@ -108,7 +101,6 @@ export function Seamless(): Seamless {
         var data: Object|string = (res.data) ? res.data : res;
         if (data && data != "false") {
           bufferedHandle(data, ToDOM);
-          resolve(Transmit);
         } else {
           throw new Error("Connection lost.");
         }
@@ -133,7 +125,6 @@ export function Seamless(): Seamless {
       Transmit = function(data) {
         bufferedHandle(data, transmitter);
       };
-    });
 
     this.connections[rh] = connection = {
       url: url,
@@ -146,60 +137,60 @@ export function Seamless(): Seamless {
       get data() {
         return buffer;
       },
+      set data(d){
+        Transmit(d)
+      },
       clients: [],
-      bindClients: function(elems: Array<SeamlessObject | SeamlessElement> | SeamlessObject | SeamlessElement): Promise<Function> {
+      bindClients: function(elems: Array<SeamlessObject | SeamlessElement> | SeamlessObject | SeamlessElement): Connection {
         if (!(elems instanceof Array)) {
           elems = [elems];
         }
         elems.forEach(function(e, i, a) {
-          e.connection = InitConnection
-            .then(function(transmit) {
-              function SeamlessDataChangeEventHandler(evt) {
-                transmit(buffer);
-                evt.stopPropagation();
-              }
-              if (e instanceof HTMLElement) {
-                e.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
-                if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
-                  e.seamless = window[e.dataset.sync].bind(e);
-                } else {
-                  e.seamless = SeamlessSync.bind(e);
-                }
-                e.deseamless = function() {
-                  this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+          e.connection = connection;
+          function SeamlessDataChangeEventHandler(evt) {
+            Transmit(buffer);
+            evt.stopPropagation();
+          }
+          if (e instanceof HTMLElement) {
+            e.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+            if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
+              e.seamless = window[e.dataset.sync].bind(e);
+            } else {
+              e.seamless = SeamlessSync.bind(e);
+            }
+            e.deseamless = function() {
+              this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+              delete this.seamless;
+              delete this.connection;
+            }.bind(e);
+            e.seamless(buffer, Transmit);
+          } else {
+            if (typeof e === "object") {
+              Object.defineProperty(e,"status",{
+                get() {
+                  return buffer;
+                },
+                set(v) {
+                  Transmit(v);
+                },
+                enumerable: true
+              });
+            } else if (typeof e === "function") {
+              a[i] = {
+                connection: connection,
+                status: buffer,
+                seamless: e,
+                deseamless: function() {
                   delete this.seamless;
                   delete this.connection;
-                }.bind(e);
-                e.seamless(buffer, transmit);
-              } else {
-                if (typeof e === "object") {
-                  Object.defineProperty(e,"status",{
-                    get() {
-                      return buffer;
-                    },
-                    set(v) {
-                      transmit(v);
-                    },
-                    enumerable: true
-                  });
-                } else if (typeof e === "function") {
-                  a[i] = {
-                    connection: InitConnection,
-                    status: buffer,
-                    seamless: e,
-                    deseamless: function() {
-                      delete this.seamless;
-                      delete this.connection;
-                    }
-                  };
                 }
-                e.status = buffer;
-              }
-              return transmit;
-            });
+              };
+            }
+            e.status = buffer;
+          }
           connection.clients.push(e);
         });
-        return InitConnection;
+        return connection;
       },
       unbindClients: function(elems) {
         if (!elems)
@@ -211,14 +202,9 @@ export function Seamless(): Seamless {
           if (index >= 0) {
             e = connection.clients.splice(index, 1)[0];
             if (e.deseamless) e.deseamless();
-            else {
-              e.connection.then(function() {
-                e.deseamless();
-              });
-            }
           }
         });
-        return InitConnection;
+        return connection;
       }
     };
     return connection;
@@ -226,14 +212,14 @@ export function Seamless(): Seamless {
 
   return {
 
-    compile: async function(dom: HTMLElement): Promise<any> {
+    compile: function(dom: HTMLElement): Array<Connection> {
       let seamlessElements: NodeListOf<HTMLElement> = dom.querySelectorAll("*[data-seamless]");
-      let connections: Array<Promise<Function>> = [];
+      let connections: Array<Connection> = [];
       for (let i = 0; i < seamlessElements.length; i++) {
         let el: HTMLElement = seamlessElements[i];
         connections.push(this.with(el.dataset.seamless).bindClients(el));
       }
-      return Promise.all(connections);
+      return connections;
     },
 
     getConnection: function(endpoint: string): Connection { // connection

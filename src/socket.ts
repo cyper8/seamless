@@ -1,16 +1,17 @@
+
 export function socket(url: string,Rx: Function): Function {
-  let rt: number;
+  let t: number;
   let rc: number = 0;
   let ec: number = 0;
-  let connect: Promise<WebSocket|string> = (function reconnect(): Promise<WebSocket|string> {
-    return new Promise(function(resolve,reject) {
+  let connect: Promise<WebSocket> = (function reconnect(): Promise<WebSocket> {
+    return new Promise<WebSocket>(function(resolve) {
       var socket: WebSocket = new WebSocket(url);
-      rt = window.setTimeout(socket.close, 9000);
+      t = window.setTimeout(socket.close, 9000);
       socket.onclose = function() {
-        clearTimeout(rt);
+        clearTimeout(t);
         rc++;
         if (rc < 5) connect = reconnect();
-        else reject(url+' does not answer');
+        else throw new Error(url+' does not answer');
       };
       socket.onerror = function(e) {
         console.error(e);
@@ -21,7 +22,7 @@ export function socket(url: string,Rx: Function): Function {
         }
       };
       socket.onopen = function() {
-        clearTimeout(rt);
+        clearTimeout(t);
         rc = 0;
         ec = 0;
         resolve(socket);
