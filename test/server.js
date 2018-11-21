@@ -23,5 +23,5 @@ module.exports = function(options) {
       }
     }
     else next();
-  }
-}
+  };
+};

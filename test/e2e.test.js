@@ -11,7 +11,7 @@ function SyncTest(data, transmitter) {
       if (data.count < 3) data.count++;
       transmitter(data);
       e.preventDefault();
-    })
+    });
   }
 }
 

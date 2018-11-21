@@ -25,12 +25,12 @@ module.exports = function(config) {
       './test/*.test.js'
     ],
     preprocessors: {
-      './src/seamless.js': 'webpack'
+      './src/seamless.js': ['webpack']
     },
     reporters: ['spec'],
     webpack: webpackConf,
     webpackMiddleware: {
-      stats: 'minimal',
+      stats: 'errors-only',
       watch: true,
       watchOptions: { // watching with Webpack is better than with Karma
         aggregateTimeout: 1000,
@@ -63,5 +63,5 @@ module.exports = function(config) {
     browsers: browsers,
     singleRun: false,
     concurrency: process.env.C9_SH_EXECUTED ? 1 : Infinity
-  })
-}
+  });
+};

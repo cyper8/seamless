@@ -1,5 +1,5 @@
 
-export function socket(url: string,Rx: Function): Function {
+export function socket(url: string, Rx: Function): Function {
   let t: number;
   let rc: number = 0;
   let ec: number = 0;
@@ -32,7 +32,7 @@ export function socket(url: string,Rx: Function): Function {
       };
     });
   })();
-  return function(data: string): void {
+  return function(data: Blob|string|ArrayBuffer): void {
     connect.then(function(active_socket: WebSocket) {
       active_socket.send(data);
     });

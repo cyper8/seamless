@@ -66,7 +66,7 @@ function DataStore() {
         res.json(setData(req.params[queryparams], req.body));
       }
       else next();
-    }
+    };
   }
 
   function WSEndpointFor(queryparams) {
@@ -77,7 +77,7 @@ function DataStore() {
         }
       });
       ws.send(serialize(getData(req.params[queryparams])));
-    }
+    };
   }
   return {
     serialize,
@@ -86,6 +86,6 @@ function DataStore() {
     setData,
     HTTPEndpointFor,
     WSEndpointFor
-  }
+  };
 }
 module.exports = DataStore();
