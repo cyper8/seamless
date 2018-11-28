@@ -8,8 +8,9 @@ export declare interface Connection {
   url: string
   buffer: Buffer
   clients: Array<SeamlessClient>
-  bindClients(elements: Array<HTMLElement|Function|Object>): this
-  unbindClients(elements?: Array<SeamlessClient>): this
+  then(callback: (param: Connection)=>any): Promise<any>
+  bindClients(elements: Array<HTMLElement|Function|Object>): Connection
+  unbindClients(elements?: Array<SeamlessClient>): Connection
 }
 
 export function Connection(url: string) {
@@ -50,6 +51,7 @@ export function Connection(url: string) {
   this.url = ComplementUrl(url);
   this.buffer = new Buffer(this.url);
   this.clients = [];
+  this.then = (callback) => Transmitter.then(()=>callback(this));
 
   this.bindClients = function(elements): Connection {
     this.clients = elements.map(

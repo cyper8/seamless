@@ -11,13 +11,18 @@ export class Seamless {
     this.connections = new Map();
   }
 
-  compile(root: HTMLElement): Seamless {
+  compile(root: HTMLElement): Promise<Connection[]> {
     let clients: NodeListOf<HTMLElement> = root.querySelectorAll('*[data-seamless]');
+    let new_connections: Array<Promise<Connection>>
     for (let i = 0; i < clients.length; i++) {
       let clientNode: HTMLElement = clients[i];
-      this.connect(clientNode.dataset.seamless).bindClients([clientNode]);
+      new_connections.push(
+        this.connect(clientNode.dataset.seamless)
+        .bindClients([clientNode])
+        .then((connection)=>connection)
+      );
     }
-    return this;
+    return Promise.all(new_connections);
   }
 
   getConnection(endpoint): Connection {

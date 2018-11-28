@@ -17,9 +17,11 @@ function SyncTest(data, transmitter) {
 }
 
 var element1,
-  element2;
+  element2,
+  ready;
 
-beforeAll(function() {
+beforeAll(function(done) {
+  window.Seamless = new Seamless();
   element1 = document.createElement("div");
   element1.setAttribute("data-seamless", "/gtest/100000000000000000000000");
   document.body.appendChild(element1);
@@ -27,7 +29,7 @@ beforeAll(function() {
   element2.setAttribute("data-seamless", "/gtest/100000000000000000000001");
   element2.setAttribute("data-sync", "SyncTest");
   document.body.appendChild(element2);
-  Seamless.compile(document.body);
+  ready = Seamless.compile(document.body).then(done);
 });
 
 afterAll(function() {
@@ -51,7 +53,7 @@ describe("Seamless", function() {
       expect(element1.getAttribute("hoverable")).toBe("false");
       done();
     }
-    element1.connection.then(Tests);
+    ready.then(Tests);// element1.connection.then(Tests);
   });
   it("has other client populated by SyncTest function", function(done) {
     function Tests() {
@@ -60,6 +62,6 @@ describe("Seamless", function() {
       expect(element2.seamless).toMatch(/SyncTest/);
       done();
     }
-    element2.connection.then(Tests);
+    ready.then(Tests);// element2.connection.then(Tests);
   });
 });

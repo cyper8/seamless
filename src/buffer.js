@@ -57,5 +57,16 @@ export class Buffer {
             return v;
         });
     }
+    get data() {
+        if (this.cache instanceof Object) {
+            return this.cache;
+        }
+        else {
+            return undefined;
+        }
+    }
+    set data(v) {
+        this.write(v);
+    }
 }
 //# sourceMappingURL=buffer.js.map
