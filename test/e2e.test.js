@@ -1,4 +1,5 @@
 /* global Seamless, expect, beforeAll, afterAll */
+// import { Seamless } from '../src/seamless.js';
 
 function SyncTest(data, transmitter) {
   this.innerText = JSON.stringify(data);
@@ -18,7 +19,7 @@ function SyncTest(data, transmitter) {
 var element1,
   element2;
 
-beforeAll(function(done) {
+beforeAll(function() {
   element1 = document.createElement("div");
   element1.setAttribute("data-seamless", "/gtest/100000000000000000000000");
   document.body.appendChild(element1);
@@ -26,7 +27,7 @@ beforeAll(function(done) {
   element2.setAttribute("data-seamless", "/gtest/100000000000000000000001");
   element2.setAttribute("data-sync", "SyncTest");
   document.body.appendChild(element2);
-  Seamless.compile(document.body).then(done);
+  Seamless.compile(document.body);
 });
 
 afterAll(function() {

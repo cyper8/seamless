@@ -1,16 +1,16 @@
 
-export function socket(url: string, Rx: Function): Function {
+export async function socket(url: string, Rx: Function): Promise<Function> {
   let t: number;
   let rc: number = 0;
   let ec: number = 0;
-  let connect: Promise<WebSocket> = (function reconnect(): Promise<WebSocket> {
+  let connection: Promise<WebSocket> = (function connect(): Promise<WebSocket> {
     return new Promise<WebSocket>(function(resolve) {
       var socket: WebSocket = new WebSocket(url);
       t = window.setTimeout(socket.close, 9000);
       socket.onclose = function() {
         clearTimeout(t);
         rc++;
-        if (rc < 5) connect = reconnect();
+        if (rc < 5) connection = connect();
         else throw new Error(url+' does not answer');
       };
       socket.onerror = function(e) {
@@ -32,8 +32,9 @@ export function socket(url: string, Rx: Function): Function {
       };
     });
   })();
+  await connection;
   return function(data: Blob|string|ArrayBuffer): void {
-    connect.then(function(active_socket: WebSocket) {
+    connection.then(function(active_socket: WebSocket) {
       active_socket.send(data);
     });
   };

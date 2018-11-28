@@ -11,6 +11,8 @@ if (!process.env.C9_SH_EXECUTED) {
   browsers = browsers.concat(["Chrome", "Firefox"]);
 }
 
+delete webpackConf.entry;
+
 module.exports = function(config) {
   config.set({
     //failOnEmptyTestSuite: false,

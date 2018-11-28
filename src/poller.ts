@@ -1,9 +1,9 @@
-export function poller(url: string, Rx: Function): Function {
+export async function poller(url: string, Rx: Function): Promise<Function> {
   var timer,
     rc = 0;
 
-  function request(url: string, data: BodyInit, Receiver: Function): Promise<any> {
-    let connect: Promise<any>;
+  async function request(url: string, data: BodyInit, Receiver: Function): Promise<any> {
+    let response: any;
     let endpoint = encodeURI(url);
     let options = {
       method: (!data || data == '') ? 'GET' : 'POST',
@@ -11,15 +11,17 @@ export function poller(url: string, Rx: Function): Function {
         "Accept": "application/json"
       }
     };
+
     if (options.method === 'POST') {
       options["body"] = data;
       options.headers["Content-Type"] = 'application/json';
     }
+
     if (fetch) {
-      connect = fetch(endpoint ,options);
+      response = await fetch(endpoint, options);
     }
     else {
-      connect = new Promise(function(resolve, reject):void {
+      response = await new Promise(function(resolve):void {
         var xhr: XMLHttpRequest = new XMLHttpRequest();
         xhr.addEventListener('readystatechange', function() {
           if (this.readyState == 4) {
@@ -27,19 +29,20 @@ export function poller(url: string, Rx: Function): Function {
               resolve(this.response);
             } else {
               this.abort();
-              reject(this.status + ': Request Error');
+              throw new Error(this.status + ': Request Error');
             }
           }
         });
         xhr.addEventListener("error", function(e) {
           this.abort();
-          reject(e);
+          throw e;
         });
         xhr.timeout = 30000;
         xhr.addEventListener("timeout", function() {
-          if ((this.readyState > 0) && (this.readyState < 4))
+          if ((this.readyState > 0) && (this.readyState < 4)) {
             this.abort();
-          reject(new Error("Request timed out!"));
+          }
+          throw new Error("Request timed out!");
         });
         xhr.responseType = 'json';
         xhr.open(options.method, endpoint, true);
@@ -50,14 +53,9 @@ export function poller(url: string, Rx: Function): Function {
       })
     }
 
-    return connect.then(function(res):void {
-      if (res) Receiver(res);
-    }).catch(function(err) {
-      console.error(err);
-      Receiver(false);
-      rc++;
-      return err;
-    });
+    Receiver(response);
+
+    return response;
   }
 
   url = (url.search(/^https?:\/\//i) < 0) ?
@@ -80,11 +78,10 @@ export function poller(url: string, Rx: Function): Function {
       });
   }
 
-  request(url + '?nopoll=true', '', Rx)
-    .then(poll, poll);
+  let init_request = await request(url + '?nopoll=true', '', Rx);
+  init_request.then(poll, poll);
 
-  function Post(d: BodyInit) {
+  return function Post(d: BodyInit):void {
     request(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
   }
-  return Post;
 }

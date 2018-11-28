@@ -40,7 +40,7 @@
   "scripts": {
     "build": "tsc && webpack",
     "release": "tsc && NODE_ENV=production webpack",
-    "test": "npm run build && karma start --single-run",
+    "test": "tsc && karma start --single-run",
     "test-server": "karma start",
     "example": "npm run build && node --inspect=${C9_HOSTNAME:-127.0.0.1}:8081 examples/index.js"
   }

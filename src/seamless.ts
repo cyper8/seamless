@@ -5,7 +5,6 @@ import { poller } from './poller.js';
 import { ComplementUrl } from './utils/complement-url.js';
 import { md5 as md5_mod } from './md5.js';
 
-
 declare interface Connection {
     url: string
     hashes: {
@@ -13,23 +12,23 @@ declare interface Connection {
       dataHash: string
     }
     data: Object
-    clients: Array<SeamlessObject | SeamlessElement>
-    bindClients(elements: Array<SeamlessObject | SeamlessElement> | SeamlessObject | SeamlessElement): Connection
-    unbindClients(elements?: Array<SeamlessObject | SeamlessElement> | SeamlessObject | SeamlessElement): Connection
+    clients: Array<any>
+    bindClients(elements: Array<HTMLElement|Function|Object>): Connection
+    unbindClients(elements?: Array<SeamlessElement|SeamlessFunction|SeamlessObject>): Connection
 }
 
 declare interface Seamless {
-    connections: Object
-    compile(root: HTMLElement): Array<Connection>
-    getConnection(url: string): Connection
-    connect(endpoint: string): Connection
-    disconnect(endpoint: string): void
+  connections: Map<string,Promise<Connection>>
+  compile(root: HTMLElement): Promise<Connection[]>
+  getConnection(url: string): Promise<Connection>
+  connect(endpoint: string): Promise<Connection>
+  disconnect(endpoint: string): Boolean
 }
 
 declare interface SeamlessObject extends Object {
+  connection: Promise<Connection>
   seamless: Function
   deseamless: Function
-  // connection: Connection
   status: Object
 }
 
@@ -61,7 +60,7 @@ function getBufferByURLHash(urlhash: string): Object {
   return d;
 }
 
-function Connect(endpoint: string): Connection {
+async function Connect(endpoint: string): Promise<Connection> {
   let url: string = ComplementUrl(endpoint);
   let rh: string = md5(url);
   let connection: Connection;
@@ -116,11 +115,11 @@ function Connect(endpoint: string): Connection {
     });
   }
 
-  transmitter = (function(callback): Function {
+  transmitter = await (async function(callback): Promise<Function> {
     if ((!(url.search(/^wss?:\/\//i) < 0)) && WebSocket) {
-      return socket(url, callback);
+      return await socket(url, callback);
     } else {
-      return poller(url.replace(/^ws/, "http"), callback);
+      return await poller(url.replace(/^ws/, "http"), callback);
     }
   })(Receive);
 
@@ -128,7 +127,7 @@ function Connect(endpoint: string): Connection {
     bufferedHandle(data, transmitter);
   };
 
-  this.connections[rh] = connection = {
+  connection = {
     url: url,
     hashes: {
       url: rh,
@@ -143,66 +142,77 @@ function Connect(endpoint: string): Connection {
       Transmit(d)
     },
     clients: [],
-    bindClients: function(elems: Array<SeamlessObject | SeamlessElement | SeamlessFunction> | SeamlessObject | SeamlessElement | SeamlessFunction): Connection {
+    bindClients: function(elems) {
       if (!(elems instanceof Array)) {
-        elems = [elems];
+        elems = new Array(elems);
       }
-      // in each Element
+
       elems.forEach(function(e, i, a) {
+
         function SeamlessDataChangeEventHandler(evt) {
           Transmit(buffer);
           evt.stopPropagation();
         }
-        // set connection field to connection object - what for?
-        // e.connection = connection;
+
+        let seamless_prop: PropertyDescriptor = {
+          value: Function,
+          enumerable: true,
+          writable: true,
+        };
+
+        let deseamless_prop: PropertyDescriptor = {
+          value: function deseamless() {
+            delete this.seamless;
+            if (this.removeEventListener) {
+              this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+            }
+          }.bind(e),
+          enumerable: true,
+          writable: true,
+        };
+
+        let status_prop: PropertyDescriptor = {
+          get() {
+            return buffer;
+          },
+          set(v) {
+            Transmit(v)
+          },
+          enumerable: true,
+          writable: true,
+        };
+
         if (e instanceof HTMLElement) {
           e.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
-          // set seamless function which must be called to update bided elements
           if (e.dataset.sync && (typeof window[e.dataset.sync] === "function")) {
-            e.seamless = window[e.dataset.sync].bind(e);
+            seamless_prop.value = window[e.dataset.sync].bind(e);
           } else {
-            e.seamless = SeamlessSync.bind(e);
+            seamless_prop.value = SeamlessSync.bind(e);
           }
-          // set deseamles function which unbindes client elements
-          e.deseamless = function() {
-            this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
-            delete this.seamless;
-            // delete this.connection;
-          }.bind(e);
-          e.seamless(buffer, Transmit);
         } else {
-          if (typeof e === "object") {
-            Object.defineProperty(e,"status",{
-              get() {
-                return buffer;
-              },
-              set(v) {
-                Transmit(v);
-              },
-              enumerable: true
-            });
-          } else if (typeof e === "function") {
-            a[i] = {
-              // connection: connection,
-              status: buffer,
-              seamless: e.bind(a[i]),
-              deseamless: function() {
-                delete this.seamless;
-                delete this.connection;
-              }
-            };
+          if (typeof e === "function") {
+            seamless_prop.value = e.bind(e);
+          } else if (typeof e === "object") {
+            seamless_prop.value = false;
           }
-          e.status = buffer;
         }
-        connection.clients.push(e);
+
+        Object.defineProperties(e, {
+          seamless: seamless_prop,
+          deseamless: deseamless_prop,
+          status: status_prop,
+        });
+
+        e["seamless"](buffer);
+
+        connection.clients.push(a[i]);
       });
+
       return connection;
     },
-    unbindClients: function(elems: Array<SeamlessObject | SeamlessElement | SeamlessFunction> | SeamlessObject | SeamlessElement | SeamlessFunction): Connection {
+    unbindClients: function(elems): Connection {
       if (!elems)
       elems = connection.clients;
-      if (!(elems instanceof Array))
-      elems = [elems];
       elems.forEach(function(e) {
         var index = connection.clients.indexOf(e);
         if (index >= 0) {
@@ -213,35 +223,40 @@ function Connect(endpoint: string): Connection {
       return connection;
     }
   };
+
   return connection;
 }
 
 export const Seamless: Seamless = {
 
-    compile: function(dom: HTMLElement): Array<Connection> {
+    compile: function(dom: HTMLElement): Promise<Connection[]> {
       let seamlessElements: NodeListOf<HTMLElement> = dom.querySelectorAll("*[data-seamless]");
-      let connections: Array<Connection> = [];
       for (let i = 0; i < seamlessElements.length; i++) {
         let el: HTMLElement = seamlessElements[i];
-        connections.push(this.with(el.dataset.seamless).bindClients(el));
+        Seamless.connect(el.dataset.seamless).then((connection)=>connection.bindClients([el]));
       }
-      return connections;
+      return Promise.all(Seamless.connections.values());
     },
 
-    getConnection: function(endpoint: string): Connection { // connection
+    getConnection: function(endpoint: string): Promise<Connection> { // connection
       let url = ComplementUrl(endpoint);
-      return this.connections[md5(url)];
+      return this.connections.get(md5(url));
     },
 
-    connect: function(endpoint: string): Connection { // connection object closure
-      return this.getConnection(endpoint) || Connect(endpoint);
+    connect: function(endpoint: string): Promise<Connection> { // connection object closure
+      let connection =  this.getConnection(endpoint);
+      if (!connection) {
+        connection = Connect(endpoint);
+        Seamless.connections.set(connection.hashes.url, connection);
+      }
+      return connection;
     },
 
-    disconnect: function(endpoint) {
+    disconnect: function(endpoint): Boolean {
       var url = ComplementUrl(endpoint);
       this.getConnection(url).unbindClients();
-      delete this.connections[md5(url)];
+      return Seamless.connections.delete(md5(url));
     },
 
-    connections: {},
+    connections: new Map([]),
 }

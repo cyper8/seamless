@@ -30,7 +30,7 @@ export function storage(): Storage {
           }});
           this[k] = v;
           (window || self).dispatchEvent(e);
-          return v;
+          return v; // incompatible with Storage interface - it should return void
         }
       },
       'getItem': {
