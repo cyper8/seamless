@@ -1,6 +1,7 @@
 export async function poller(url: string, Rx: Function): Promise<Function> {
-  var timer,
-    rc = 0;
+  let timer: number;
+  let rc: number = 0;
+  // let ec: number = 0;
 
   async function request(url: string, data: BodyInit, Receiver: Function): Promise<any> {
     let response: any;
@@ -21,8 +22,9 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
       response = await fetch(endpoint, options);
     }
     else {
-      response = await new Promise(function(resolve):void {
+      response = await (new Promise(function(resolve):void {
         var xhr: XMLHttpRequest = new XMLHttpRequest();
+        xhr.timeout = 30000;
         xhr.addEventListener('readystatechange', function() {
           if (this.readyState == 4) {
             if (this.status == 200) {
@@ -34,10 +36,10 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
           }
         });
         xhr.addEventListener("error", function(e) {
+          console.error(e);
           this.abort();
           throw e;
         });
-        xhr.timeout = 30000;
         xhr.addEventListener("timeout", function() {
           if ((this.readyState > 0) && (this.readyState < 4)) {
             this.abort();
@@ -50,7 +52,7 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
           xhr.setRequestHeader(h, options.headers[h]);
         }
         xhr.send(data || '');
-      })
+      }));
     }
 
     Receiver(response);
@@ -65,21 +67,21 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
   function poll():void {
     request(url, '', Rx)
       .then(function() {
-        timer = setTimeout(poll, 1000);
+        timer = window.setTimeout(poll, 1000);
       })
       .catch(function() {
         if (rc > 5) {
-          clearTimeout(timer);
+          window.clearTimeout(timer);
           console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
         } else {
           console.error("Reconnecting attempt " + rc);
-          timer = setTimeout(poll, 1000);
+          timer = window.setTimeout(poll, 1000);
         }
       });
   }
 
-  let init_request = await request(url + '?nopoll=true', '', Rx);
-  init_request.then(poll, poll);
+  await request(url + '?nopoll=true', '', Rx);
+  poll();
 
   return function Post(d: BodyInit):void {
     request(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);

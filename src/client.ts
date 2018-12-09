@@ -1,4 +1,4 @@
-import { SeamlessSync } from './ssync';
+import { SeamlessSync } from './ssync.js';
 
 export class SeamlessClient {
   constructor(element: HTMLElement|Function|Object, transmit: Function, buffer: Object) {
@@ -11,7 +11,6 @@ export class SeamlessClient {
     let seamless: PropertyDescriptor = {
       value: Function,
       enumerable: true,
-      writable: true,
     };
 
     let deseamless: PropertyDescriptor = {
@@ -22,7 +21,6 @@ export class SeamlessClient {
         }
       }.bind(element),
       enumerable: true,
-      writable: true,
     };
 
     let status: PropertyDescriptor = {
@@ -33,7 +31,6 @@ export class SeamlessClient {
         transmit(v);
       },
       enumerable: true,
-      writable: true,
     };
 
     if (element instanceof HTMLElement) {

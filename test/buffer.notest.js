@@ -1,12 +1,16 @@
 import { Buffer } from '../src/buffer.js';
-import { md5 } from '../src/md5';
+import { md5 } from '../src/md5.js';
 
 const _MD5_ = md5();
 const test_url = 'ws://test_buf';
 let buffer;
 
-beforeAll(function(){
+beforeAll(function() {
   buffer = new Buffer(test_url);
+});
+
+afterAll(function(done) {
+  buffer.clear().then(done);
 });
 
 describe('Buffer for a given url', function(){
@@ -20,7 +24,7 @@ describe('Buffer for a given url', function(){
         buffer.datahash.then(function(hash){
           return expect(hash).toBe(null);
         }),
-        buffer.retrieve().then((value) => {
+        buffer.read().then((value) => {
           return expect(value).toBe(undefined);
         })
       ])
@@ -32,8 +36,11 @@ describe('Buffer for a given url', function(){
     buffer.write(testval)
     .then((value)=>{
       expect(value).toBe(testval);
-      expect(buffer.cache).toBe(testval);
-      done();
+      buffer.datahash
+      .then(()=>{
+        expect(buffer.data).toEqual(testval);
+        done();
+      });
     });
   });
 });

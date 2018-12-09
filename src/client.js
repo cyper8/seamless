@@ -1,4 +1,4 @@
-import { SeamlessSync } from './ssync';
+import { SeamlessSync } from './ssync.js';
 export class SeamlessClient {
     constructor(element, transmit, buffer) {
         function SeamlessDataChangeEventHandler(evt) {
@@ -8,7 +8,6 @@ export class SeamlessClient {
         let seamless = {
             value: Function,
             enumerable: true,
-            writable: true,
         };
         let deseamless = {
             value: function deseamless() {
@@ -18,7 +17,6 @@ export class SeamlessClient {
                 }
             }.bind(element),
             enumerable: true,
-            writable: true,
         };
         let status = {
             get() {
@@ -28,7 +26,6 @@ export class SeamlessClient {
                 transmit(v);
             },
             enumerable: true,
-            writable: true,
         };
         if (element instanceof HTMLElement) {
             element.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);

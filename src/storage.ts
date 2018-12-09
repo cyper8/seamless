@@ -22,12 +22,12 @@ export function storage(): Storage {
     return Object.defineProperties({},{
       'setItem': {
         value: function(k: string,v: string): string {
-          var e: CustomEvent = new CustomEvent('storage',{detail:{
+          var e: StorageEvent = new StorageEvent('storage',{
             key:k,
             oldValue:this[k],
             newValue:v,
             storageArea:this
-          }});
+          });
           this[k] = v;
           (window || self).dispatchEvent(e);
           return v; // incompatible with Storage interface - it should return void
@@ -39,8 +39,19 @@ export function storage(): Storage {
         }
       },
       'removeItem': {
-        value: function(k: string){
+        value: function(k: string): Storage {
+          let v = this[k];
           delete this[k];
+          window.dispatchEvent(
+            (
+              new StorageEvent('storage', {
+                key: k,
+                oldValue: v,
+                newValue: undefined,
+                storageArea: this
+              })
+            )
+          );
           return this;
         }
       },
@@ -54,7 +65,7 @@ export function storage(): Storage {
         }
       },
       'clear': {
-        value: function(){
+        value: function(): Storage {
           var i;
           for (i in this){
             this.removeItem(i);

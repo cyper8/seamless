@@ -1,3 +1,5 @@
+const IP = process.env.IP||'0.0.0.0';
+const PORT = process.env.PORT||3000;
 var express = require('express'),
   jsonParser = require("body-parser").json(),
   app = express(),
@@ -33,7 +35,7 @@ Test.deleteMany({}).exec().then(function() {
 })
   .then(function() {
     console.log("DB seeded");
-  })
+  });
 
 app.use(require("helmet")());
 
@@ -48,6 +50,6 @@ app.use(express.static(`${__dirname}/../../bin`, {
   maxAge: 1000
 }));
 
-app.listen(process.env.PORT || 3000, process.env.IP || '127.0.0.1', function() {
-  console.log('Listening on ' + (process.env.PORT||3000))
+app.listen(PORT, IP, function() {
+  console.log('Listening on ' + PORT);
 });

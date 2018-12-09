@@ -1,4 +1,3 @@
-var webpackConf = require("./webpack.config.js");
 var jsonParser = function(config) {
   return require('body-parser').json();
 };
@@ -8,10 +7,9 @@ var SeamlessTestMiddleware = function(config) {
 
 var browsers = ["PhantomJS"];
 if (!process.env.C9_SH_EXECUTED) {
-  browsers = browsers.concat(["Chrome", "Firefox"]);
+  browsers = browsers.concat(["ChromeHeadless", "FirefoxHeadless"]);
 }
 
-delete webpackConf.entry;
 
 module.exports = function(config) {
   config.set({
@@ -21,24 +19,16 @@ module.exports = function(config) {
     listenAddress: 'localhost',
     hostname: 'localhost',
     frameworks: ['jasmine', 'promise'],
-    //customContextFile: 'test/index.html',
     files: [
-      './src/seamless.js',
-      './test/*.test.js'
+      // { pattern: './node_modules/basic-library/src/**/*.js', type: 'module', include: false },
+      { pattern: './src/**/*.js', type: 'module', include: false },
+      // { pattern: './src/seamless.js', type: 'module', include: true },
+      { pattern: './test/*.test.js', type: 'module' }
     ],
-    preprocessors: {
-      './src/seamless.js': ['webpack']
-    },
+    // preprocessors: {
+    //   './src/**/*.ts': ['karma-typescript']
+    // },
     reporters: ['spec'],
-    webpack: webpackConf,
-    webpackMiddleware: {
-      stats: 'errors-only',
-      watch: true,
-      watchOptions: { // watching with Webpack is better than with Karma
-        aggregateTimeout: 1000,
-        ignored: /node_modules/
-      }
-    },
     middleware: ['jsonParser', 'SeamlessTest'],
     plugins: [
       {
@@ -48,7 +38,6 @@ module.exports = function(config) {
         'middleware:SeamlessTest': ['factory', SeamlessTestMiddleware]
       },
       'karma-jasmine',
-      'karma-webpack',
       'karma-phantomjs-launcher',
       'karma-chrome-launcher',
       'karma-firefox-launcher',
@@ -57,12 +46,11 @@ module.exports = function(config) {
     ],
     port: 8080,
     colors: true,
-    logLevel: config.LOG_DEBUG,
-    // client: {
-    //   clearContext: false
-    // },
-    //autoWatch: true,
+    autoWatch: true,
     browsers: browsers,
+    browserConsoleLogOptions: {
+      level: "info"
+    },
     singleRun: false,
     concurrency: process.env.C9_SH_EXECUTED ? 1 : Infinity
   });

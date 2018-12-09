@@ -18,12 +18,12 @@ export function storage() {
         return Object.defineProperties({}, {
             'setItem': {
                 value: function (k, v) {
-                    var e = new CustomEvent('storage', { detail: {
-                            key: k,
-                            oldValue: this[k],
-                            newValue: v,
-                            storageArea: this
-                        } });
+                    var e = new StorageEvent('storage', {
+                        key: k,
+                        oldValue: this[k],
+                        newValue: v,
+                        storageArea: this
+                    });
                     this[k] = v;
                     (window || self).dispatchEvent(e);
                     return v; // incompatible with Storage interface - it should return void
@@ -36,7 +36,14 @@ export function storage() {
             },
             'removeItem': {
                 value: function (k) {
+                    let v = this[k];
                     delete this[k];
+                    window.dispatchEvent((new StorageEvent('storage', {
+                        key: k,
+                        oldValue: v,
+                        newValue: undefined,
+                        storageArea: this
+                    })));
                     return this;
                 }
             },

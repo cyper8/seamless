@@ -1,38 +1,36 @@
-import { md5 } from './md5';
-import { ComplementUrl } from './utils/complement-url';
-import { Connection } from './connection';
+import { md5 } from './md5.js';
+import { ComplementUrl } from './utils/complement-url.js';
+import { Connection } from './connection.js';
 const MD5 = md5();
-export class Seamless {
-    constructor() {
-        this.connections = new Map();
-    }
+export const Seamless = {
+    connections: new Map(),
     compile(root) {
         let clients = root.querySelectorAll('*[data-seamless]');
-        let new_connections;
+        let new_connections = [];
         for (let i = 0; i < clients.length; i++) {
             let clientNode = clients[i];
-            new_connections.push(this.connect(clientNode.dataset.seamless)
+            new_connections.push(Seamless.connect(clientNode.dataset.seamless)
                 .bindClients([clientNode])
                 .then((connection) => connection));
         }
         return Promise.all(new_connections);
-    }
+    },
     getConnection(endpoint) {
         let url = ComplementUrl(endpoint);
-        return this.connections.get(MD5(url));
-    }
+        return Seamless.connections.get(MD5(url));
+    },
     connect(endpoint) {
-        let connection = this.getConnection(endpoint);
+        let connection = Seamless.getConnection(endpoint);
         if (!connection) {
             connection = new Connection(endpoint);
-            this.connections.set(connection.url, connection);
+            Seamless.connections.set(connection.url, connection);
         }
         return connection;
-    }
+    },
     disconnect(endpoint) {
-        let connection = this.getConnection(endpoint);
+        let connection = Seamless.getConnection(endpoint);
         connection.unbindClients();
-        return this.connections.delete(connection.url);
+        return Seamless.connections.delete(connection.url);
     }
-}
+};
 //# sourceMappingURL=seamless.js.map

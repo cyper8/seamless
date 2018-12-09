@@ -21,7 +21,6 @@ var element1,
   ready;
 
 beforeAll(function(done) {
-  window.Seamless = new Seamless();
   element1 = document.createElement("div");
   element1.setAttribute("data-seamless", "/gtest/100000000000000000000000");
   document.body.appendChild(element1);

@@ -1,3 +1,5 @@
+const IP = process.env.IP||'0.0.0.0';
+const PORT = process.env.PORT||3000;
 var express = require('express'),
   jsonParser = require("body-parser").json(),
   app = express(),
@@ -16,6 +18,6 @@ app.use(express.static(`${__dirname}/../../bin`, {
   maxAge: 1000
 }));
 
-app.listen(process.env.PORT, process.env.IP, function() {
-  console.log('Listening on ' + process.env.PORT)
+app.listen(PORT, IP, function() {
+  console.log('Listening on ' + PORT);
 });

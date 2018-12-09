@@ -3,8 +3,9 @@
   <head>
     <meta charset="utf-8">
     <title>Seamless Tests</title>
-    <link rel="stylesheet" type="text/css" href="/base.css" />
-    <script type="text/javascript" src="/seamless-client.js"></script>
+    <link rel="stylesheet" type="text/css" href="./base.css" />
+    <script type="text/javascript" src="./seamless-client.min.js">
+    </script>
   </head>
   <body>
     <div data-seamless="/gtest/100000000000000000000000"></div>
@@ -29,7 +30,7 @@
         })
       }
     }
-    
+
     window.addEventListener('load', function() {
       Seamless.compile(document.body);
     });

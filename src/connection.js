@@ -1,8 +1,8 @@
-import { Buffer } from './buffer';
-import { ComplementUrl } from './utils/complement-url';
-import { socket } from './socket';
-import { poller } from './poller';
-import { SeamlessClient } from './client';
+import { Buffer } from './buffer.js';
+import { ComplementUrl } from './utils/complement-url.js';
+import { socket } from './socket.js';
+import { poller } from './poller.js';
+import { SeamlessClient } from './client.js';
 export function Connection(url) {
     var self = this;
     function ToDOM(data) {
@@ -33,7 +33,6 @@ export function Connection(url) {
             return transmitter(data);
         });
     }
-    const Transmitter = Connect(Receiver);
     this.url = ComplementUrl(url);
     this.buffer = new Buffer(this.url);
     this.clients = [];
@@ -54,5 +53,6 @@ export function Connection(url) {
         });
         return self;
     };
+    const Transmitter = Connect(Receiver);
 }
 //# sourceMappingURL=connection.js.map

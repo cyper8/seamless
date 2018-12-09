@@ -8,7 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 export function poller(url, Rx) {
     return __awaiter(this, void 0, void 0, function* () {
-        var timer, rc = 0;
+        let timer;
+        let rc = 0;
+        // let ec: number = 0;
         function request(url, data, Receiver) {
             return __awaiter(this, void 0, void 0, function* () {
                 let response;
@@ -27,8 +29,9 @@ export function poller(url, Rx) {
                     response = yield fetch(endpoint, options);
                 }
                 else {
-                    response = yield new Promise(function (resolve) {
+                    response = yield (new Promise(function (resolve) {
                         var xhr = new XMLHttpRequest();
+                        xhr.timeout = 30000;
                         xhr.addEventListener('readystatechange', function () {
                             if (this.readyState == 4) {
                                 if (this.status == 200) {
@@ -41,10 +44,10 @@ export function poller(url, Rx) {
                             }
                         });
                         xhr.addEventListener("error", function (e) {
+                            console.error(e);
                             this.abort();
                             throw e;
                         });
-                        xhr.timeout = 30000;
                         xhr.addEventListener("timeout", function () {
                             if ((this.readyState > 0) && (this.readyState < 4)) {
                                 this.abort();
@@ -57,7 +60,7 @@ export function poller(url, Rx) {
                             xhr.setRequestHeader(h, options.headers[h]);
                         }
                         xhr.send(data || '');
-                    });
+                    }));
                 }
                 Receiver(response);
                 return response;
@@ -69,21 +72,21 @@ export function poller(url, Rx) {
         function poll() {
             request(url, '', Rx)
                 .then(function () {
-                timer = setTimeout(poll, 1000);
+                timer = window.setTimeout(poll, 1000);
             })
                 .catch(function () {
                 if (rc > 5) {
-                    clearTimeout(timer);
+                    window.clearTimeout(timer);
                     console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
                 }
                 else {
                     console.error("Reconnecting attempt " + rc);
-                    timer = setTimeout(poll, 1000);
+                    timer = window.setTimeout(poll, 1000);
                 }
             });
         }
-        let init_request = yield request(url + '?nopoll=true', '', Rx);
-        init_request.then(poll, poll);
+        yield request(url + '?nopoll=true', '', Rx);
+        poll();
         return function Post(d) {
             request(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
         };
