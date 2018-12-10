@@ -7,7 +7,7 @@ var SeamlessTestMiddleware = function(config) {
 
 var browsers = ["PhantomJS"];
 if (!process.env.C9_SH_EXECUTED) {
-  browsers = browsers.concat(["ChromeHeadless", "FirefoxHeadless"]);
+  browsers = ["ChromeHeadless", "FirefoxHeadless"];
 }
 
 
@@ -20,7 +20,7 @@ module.exports = function(config) {
     hostname: 'localhost',
     frameworks: ['jasmine', 'promise'],
     files: [
-      // { pattern: './node_modules/basic-library/src/**/*.js', type: 'module', include: false },
+      { pattern: './node_modules/basic-library/src/UI/Element.js', type: 'module', include: false },
       { pattern: './src/**/*.js', type: 'module', include: false },
       // { pattern: './src/seamless.js', type: 'module', include: true },
       { pattern: './test/*.test.js', type: 'module' }

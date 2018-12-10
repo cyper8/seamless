@@ -10,7 +10,7 @@ export function Debounced(func,backoff) {
 		timer = setTimeout(function(){
 			clearTimeout(timer);
 			timer = undefined;
-			func.apply(self,evtargs);
-		},backoff);
+			(func||(function(){})).apply(self,evtargs);
+		},backoff||0);
 	};
 }

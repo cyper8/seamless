@@ -20,15 +20,17 @@ describe('Buffer for a given url', function(){
 
   it('should eventually get a default value into datahash and cache',
     function(done){
-      Promise.all([
-        buffer.datahash.then(function(hash){
-          return expect(hash).toBe(null);
-        }),
-        buffer.read().then((value) => {
-          return expect(value).toBe(undefined);
-        })
-      ])
-      .then(done);
+      buffer.clear().then(()=>{
+        Promise.all([
+          buffer.datahash.then(function(hash){
+            return expect(hash).toBe(null);
+          }),
+          buffer.read().then((value) => {
+            return expect(value).toBe(undefined);
+          })
+        ])
+        .then(done);
+      });
     });
 
   it('should enable setting new value and return it', function(done){
