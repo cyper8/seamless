@@ -44,7 +44,7 @@ export function SeamlessSync(data: Object): void{
           });
           break;
         case "object":
-          getElements(key,this).forEach(function(e){
+          getElements(key,[this]).forEach(function(e){
             SeamlessSync.apply(e,data[key]);
           })
       }
