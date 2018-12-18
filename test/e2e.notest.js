@@ -1,5 +1,5 @@
 /* global Seamless, expect, beforeAll, afterAll */
-// import { Seamless } from '../src/seamless.js';
+import { Seamless } from '../src/seamless.js';
 
 function SyncTest(data, transmitter) {
   this.innerText = JSON.stringify(data);
@@ -18,7 +18,7 @@ function SyncTest(data, transmitter) {
 
 var element1,
   element2,
-  ready;
+  seamlessReady;
 
 beforeAll(function(done) {
   element1 = document.createElement("div");
@@ -28,7 +28,7 @@ beforeAll(function(done) {
   element2.setAttribute("data-seamless", "/gtest/100000000000000000000001");
   element2.setAttribute("data-sync", "SyncTest");
   document.body.appendChild(element2);
-  ready = Seamless.compile(document.body).then(done);
+  seamlessReady = Seamless.compile(document.body).then(done);
 });
 
 afterAll(function() {
@@ -52,7 +52,7 @@ describe("Seamless", function() {
       expect(element1.getAttribute("hoverable")).toBe("false");
       done();
     }
-    ready.then(Tests);// element1.connection.then(Tests);
+    seamlessReady.then(Tests);// element1.connection.then(Tests);
   });
   it("has other client populated by SyncTest function", function(done) {
     function Tests() {
@@ -61,6 +61,6 @@ describe("Seamless", function() {
       expect(element2.seamless).toMatch(/SyncTest/);
       done();
     }
-    ready.then(Tests);// element2.connection.then(Tests);
+    seamlessReady.then(Tests);// element2.connection.then(Tests);
   });
 });

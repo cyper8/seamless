@@ -19,7 +19,17 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
     }
 
     if (fetch) {
-      response = await fetch(endpoint, options);
+      let abortController = new AbortController();
+      let abortSignal = abortController.signal;
+      options["signal"] = abortSignal;
+      let abortableFetch = Promise.race([
+        fetch(endpoint, options),
+        new Promise((_, reject)=>setTimeout(()=>{
+          abortController.abort();
+          reject('Fetch timeout reached. Request aborted.');
+        }, 30000)),
+      ]);
+      response = await abortableFetch;
     }
     else {
       response = await (new Promise(function(resolve):void {
@@ -60,10 +70,6 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
     return response;
   }
 
-  url = (url.search(/^https?:\/\//i) < 0) ?
-    url.replace(/^[^:]+:/i, "http:") :
-    url;
-
   function poll():void {
     request(url, '', Rx)
       .then(function() {
@@ -80,6 +86,9 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
       });
   }
 
+  url = (url.search(/^https?:\/\//i) < 0) ?
+    url.replace(/^[^:]+:/i, "http:") :
+    url;
   await request(url + '?nopoll=true', '', Rx);
   poll();
 

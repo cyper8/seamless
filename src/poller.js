@@ -26,7 +26,17 @@ export function poller(url, Rx) {
                     options.headers["Content-Type"] = 'application/json';
                 }
                 if (fetch) {
-                    response = yield fetch(endpoint, options);
+                    let abortController = new AbortController();
+                    let abortSignal = abortController.signal;
+                    options["signal"] = abortSignal;
+                    let abortableFetch = Promise.race([
+                        fetch(endpoint, options),
+                        new Promise((_, reject) => setTimeout(() => {
+                            abortController.abort();
+                            reject('Fetch timeout reached. Request aborted.');
+                        }, 30000)),
+                    ]);
+                    response = yield abortableFetch;
                 }
                 else {
                     response = yield (new Promise(function (resolve) {
@@ -66,9 +76,6 @@ export function poller(url, Rx) {
                 return response;
             });
         }
-        url = (url.search(/^https?:\/\//i) < 0) ?
-            url.replace(/^[^:]+:/i, "http:") :
-            url;
         function poll() {
             request(url, '', Rx)
                 .then(function () {
@@ -85,6 +92,9 @@ export function poller(url, Rx) {
                 }
             });
         }
+        url = (url.search(/^https?:\/\//i) < 0) ?
+            url.replace(/^[^:]+:/i, "http:") :
+            url;
         yield request(url + '?nopoll=true', '', Rx);
         poll();
         return function Post(d) {
