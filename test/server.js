@@ -15,8 +15,8 @@ module.exports = function(options) {
           res.end(store.serialize(store.getData(id)));
         } else {
           setTimeout(function() {
-            res.end('ok');
-          }, 29000);
+            res.end(store.serialize(store.getData(id)));
+          }, 25000);
         }
       } else if (req.method == 'POST') {
         res.end(store.serialize(store.setData(id, req.body)));

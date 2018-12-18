@@ -1,11 +1,12 @@
-export async function poller(url: string, Rx: Function): Promise<Function> {
+export function poller(url:string, receiver:Function): Promise<Function> {
+
   let timer: number;
   let rc: number = 0;
-  // let ec: number = 0;
 
-  async function request(url: string, data: BodyInit, Receiver: Function): Promise<any> {
-    let response: any;
+  async function request(url: string, data: BodyInit): Promise<any> {
+    let response: Object;
     let endpoint = encodeURI(url);
+    console.log(endpoint);
     let options = {
       method: (!data || data == '') ? 'GET' : 'POST',
       headers: {
@@ -18,12 +19,19 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
       options.headers["Content-Type"] = 'application/json';
     }
 
-    if (fetch) {
+    if (fetch && AbortController) {
       let abortController = new AbortController();
       let abortSignal = abortController.signal;
       options["signal"] = abortSignal;
       let abortableFetch = Promise.race([
-        fetch(endpoint, options),
+        fetch(endpoint, options).then((res)=>{
+          if (res.status === 200) {
+            return res.json();
+          }
+          else {
+            throw new Error(res.status.toString());
+          }
+        }),
         new Promise((_, reject)=>setTimeout(()=>{
           abortController.abort();
           reject('Fetch timeout reached. Request aborted.');
@@ -34,28 +42,22 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
     else {
       response = await (new Promise(function(resolve):void {
         var xhr: XMLHttpRequest = new XMLHttpRequest();
+        const Abort = function(reason){
+          console.error(reason);
+          if ((this.readyState > 0) && (this.readyState < 4)) {
+            this.abort();
+          }
+        }.bind(xhr);
         xhr.timeout = 30000;
         xhr.addEventListener('readystatechange', function() {
           if (this.readyState == 4) {
             if (this.status == 200) {
               resolve(this.response);
-            } else {
-              this.abort();
-              throw new Error(this.status + ': Request Error');
             }
           }
         });
-        xhr.addEventListener("error", function(e) {
-          console.error(e);
-          this.abort();
-          throw e;
-        });
-        xhr.addEventListener("timeout", function() {
-          if ((this.readyState > 0) && (this.readyState < 4)) {
-            this.abort();
-          }
-          throw new Error("Request timed out!");
-        });
+        xhr.addEventListener("error", Abort);
+        xhr.addEventListener("timeout", Abort);
         xhr.responseType = 'json';
         xhr.open(options.method, endpoint, true);
         for (let h in options.headers) {
@@ -64,35 +66,52 @@ export async function poller(url: string, Rx: Function): Promise<Function> {
         xhr.send(data || '');
       }));
     }
-
-    Receiver(response);
-
     return response;
   }
 
-  function poll():void {
-    request(url, '', Rx)
-      .then(function() {
+  function init() {
+    return request(url + '?nopoll=true', '')
+    .then((response)=>{
+      console.log('initialized');
+      receiver(response);
+    });
+  }
+
+  function Post(d: BodyInit):Promise<any> {
+    return request(url, (typeof d !== "string") ? JSON.stringify(d) : d)
+    .then((response)=>receiver(response));
+  }
+
+  function poll():Promise<any> {
+    console.log('polling');
+    return request(url, '')
+      .then(function(response) {
+        receiver(response);
         timer = window.setTimeout(poll, 1000);
-      })
-      .catch(function() {
-        if (rc > 5) {
-          window.clearTimeout(timer);
-          console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
-        } else {
-          console.error("Reconnecting attempt " + rc);
-          timer = window.setTimeout(poll, 1000);
-        }
       });
   }
 
-  url = (url.search(/^https?:\/\//i) < 0) ?
+  return new Promise((resolve,reject)=>{
+    url = (url.search(/^https?:\/\//i) < 0) ?
     url.replace(/^[^:]+:/i, "http:") :
     url;
-  await request(url + '?nopoll=true', '', Rx);
-  poll();
 
-  return function Post(d: BodyInit):void {
-    request(url, (typeof d !== "string") ? JSON.stringify(d) : d, Rx);
-  }
+    init()
+    .then(()=>{
+      resolve(Post);
+    })
+    .then(poll)
+    .catch(function(err) {
+      console.error(err);
+      if (rc > 5) {
+        window.clearTimeout(timer);
+        rc = 0;
+        console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
+        reject(err);
+      } else {
+        console.error("Reconnecting attempt " + rc);
+        timer = window.setTimeout(poll, 1000);
+      }
+    });
+  });
 }
