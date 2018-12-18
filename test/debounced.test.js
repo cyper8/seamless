@@ -13,7 +13,8 @@ describe("\"Debounced\" function", function(){
   describe("which is once called", function(){
     it("should execute target function after specified timeout", function(done){
       let debounced = Debounced(function(){
-        expect(Date.now()-teststart).toBeCloseTo(TESTTIMEOUT,-1);
+        let delta = Math.abs(TESTTIMEOUT-(Date.now()-teststart));
+        expect(delta).toBeLessThan(20);
         done();
       }, TESTTIMEOUT);
       teststart = Date.now();
@@ -31,7 +32,8 @@ describe("\"Debounced\" function", function(){
     });
     it("should reset unfinished timer of the previous invocation", function(done){
       let debounced = Debounced(function(){
-        expect(spiednow()-teststart).toBeCloseTo(TESTTIMEOUT,-1);
+        let delta = Math.abs(TESTTIMEOUT-(spiednow()-teststart));
+        expect(delta).toBeLessThan(20);
         done();
       }, TESTTIMEOUT);
       function TestRun(){

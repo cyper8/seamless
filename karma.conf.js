@@ -4,6 +4,7 @@ var jsonParser = function(config) {
 var SeamlessTestMiddleware = function(config) {
   return require("./test/server.js")();
 };
+const WSSeamlessServer = require('./test/wsserver.js');
 
 var browsers = ["PhantomJS"];
 if (!process.env.C9_SH_EXECUTED) {
@@ -18,7 +19,7 @@ module.exports = function(config) {
     urlRoot: '/',
     listenAddress: 'localhost',
     hostname: 'localhost',
-    frameworks: ['jasmine', 'promise'],
+    frameworks: ['jasmine', 'promise', 'websocket-server'],
     files: [
       { pattern: './node_modules/basic-library/src/UI/Element.js', type: 'module', include: false },
       { pattern: './src/**/*.js', type: 'module', include: false },
@@ -30,6 +31,10 @@ module.exports = function(config) {
     // },
     reporters: ['spec'],
     middleware: ['jsonParser', 'SeamlessTest'],
+    websocketServer: {
+      port: 8081,
+      beforeStart: WSSeamlessServer,
+    },
     plugins: [
       {
         'middleware:jsonParser': ['factory', jsonParser]
@@ -42,6 +47,7 @@ module.exports = function(config) {
       'karma-chrome-launcher',
       'karma-firefox-launcher',
       'karma-promise',
+      'karma-websocket-server',
       'karma-spec-reporter'
     ],
     port: 8080,

@@ -3,7 +3,8 @@ export async function socket(url: string, Rx: Function): Promise<Function> {
   let t: number;
   let rc: number = 0;
   let ec: number = 0;
-  let connection: Promise<WebSocket> = (function connect(): Promise<WebSocket> {
+  let connection: Promise<WebSocket>;
+  connection = (function connect(): Promise<WebSocket> {
     return new Promise<WebSocket>(function(resolve) {
       var socket: WebSocket = new WebSocket(url);
       t = window.setTimeout(socket.close, 9000);
@@ -28,7 +29,15 @@ export async function socket(url: string, Rx: Function): Promise<Function> {
         resolve(socket);
       };
       socket.onmessage = function(e) {
-        Rx(e.data);
+        let data;
+        try {
+          data = JSON.parse(e.data);
+        } catch(error) {
+          throw error;
+        }
+        if (data) {
+          Rx(data);
+        }
       };
     });
   })();

@@ -11,7 +11,8 @@ export function socket(url, Rx) {
         let t;
         let rc = 0;
         let ec = 0;
-        let connection = (function connect() {
+        let connection;
+        connection = (function connect() {
             return new Promise(function (resolve) {
                 var socket = new WebSocket(url);
                 t = window.setTimeout(socket.close, 9000);
@@ -38,7 +39,16 @@ export function socket(url, Rx) {
                     resolve(socket);
                 };
                 socket.onmessage = function (e) {
-                    Rx(e.data);
+                    let data;
+                    try {
+                        data = JSON.parse(e.data);
+                    }
+                    catch (error) {
+                        throw error;
+                    }
+                    if (data) {
+                        Rx(data);
+                    }
                 };
             });
         })();
