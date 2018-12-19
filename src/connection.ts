@@ -13,23 +13,22 @@ export declare interface Connection {
   unbindClients(elements?: Array<SeamlessClient>): Connection
 }
 
-export function Connection(url: string) {
-  var self = this;
+export function Connection(url: string):void {
+  var self: Connection = this;
 
-  function ToDOM(data) {
-    self.clients.forEach(function(e) {
-      if (e.seamless) e.seamless(data);
+  function ToDOM(data: Object) {
+    self.clients.forEach(function(client: SeamlessClient) {
+      if (client.seamless) client.seamless(data);
       else
-      e.status = data;
+      client.status = data;
     });
   }
 
-  function Receiver(response) {
-    let data = response.data || response;
-    self.buffer.write(data).then((data)=>ToDOM(data));
+  function Receiver(response:Object) {
+    self.buffer.write(response).then((data)=>ToDOM(data));
   }
 
-  function Connect(receiver) {
+  function Connect(receiver: Function):Promise<Function> {
     if (((self.url.search(/^wss?:\/\//i) >= 0)) && WebSocket) {
       return socket(url, receiver);
     } else {
@@ -37,7 +36,7 @@ export function Connection(url: string) {
     }
   }
 
-  function Transmit(data) {
+  function Transmit(data:Object) {
     return Promise.all([
       Transmitter,
       self.buffer.write(data)
@@ -51,14 +50,14 @@ export function Connection(url: string) {
   this.clients = [];
   this.then = (callback) => Transmitter.then(()=>callback(this));
 
-  this.bindClients = function(elements): Connection {
+  this.bindClients = function(elements: Array<HTMLElement|Function|Object>): Connection {
     this.clients = elements.map(
       (element) => new SeamlessClient(element, Transmit, self.buffer.data)
     );
     return self;
   };
 
-  this.unbindClients = function(elements): Connection {
+  this.unbindClients = function(elements: SeamlessClient[]): Connection {
     let elems = elements || self.clients;
     elems.forEach((e)=>{
       let index = self.clients.indexOf(e);
@@ -70,6 +69,6 @@ export function Connection(url: string) {
     return self;
   };
 
-  const Transmitter = Connect(Receiver);
+  const Transmitter:Promise<Function> = Connect(Receiver);
 
 }

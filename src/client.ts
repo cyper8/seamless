@@ -1,5 +1,11 @@
 import { SeamlessSync } from './ssync.js';
 
+export interface SeamlessClient {
+  seamless: Function|false
+  deseamless: Function
+  status: Object
+}
+
 export class SeamlessClient {
   constructor(element: HTMLElement|Function|Object, transmit: Function, buffer: Object) {
 

@@ -29,7 +29,7 @@ export async function socket(url: string, Rx: Function): Promise<Function> {
         resolve(socket);
       };
       socket.onmessage = function(e) {
-        let data;
+        let data: Object;
         try {
           data = JSON.parse(e.data);
         } catch(error) {

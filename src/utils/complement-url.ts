@@ -2,17 +2,22 @@ export function ComplementUrl(url: string): string {
   let proto: string;
   let host: string;
   let p: Array<string> = url.split("/");
-  if (p[0].search(/:$/) == -1) {
-    proto = window.location.protocol + "//";
-  } else {
-    proto = p[0] + "//";
-    p = p.slice(2);
+
+  if (p[0].search(/:$/) !== -1) { // schema in 0 element
+    proto = p.shift();
+  } else { // no schema in 0 element
+    proto = window.location.protocol;
   }
-  if ((p.length == 1) || (p[0].search(/^[a-z][a-z0-9]*\./i) == -1)) {
-    host = window.location.host;
-    if (p[0] == "") p.shift();
-  } else {
+
+  if (p[0] === '') { // schema followed by //
+    p.shift();
     host = p.shift();
+    if (host === '') {
+      host = window.location.host;
+    }
   }
-  return proto + host + "/" + p.join("/");
+
+  // all elements left are components of path
+
+  return `${proto}//${host}/${p.join('/')}`;
 }

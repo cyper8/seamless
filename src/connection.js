@@ -6,16 +6,15 @@ import { SeamlessClient } from './client.js';
 export function Connection(url) {
     var self = this;
     function ToDOM(data) {
-        self.clients.forEach(function (e) {
-            if (e.seamless)
-                e.seamless(data);
+        self.clients.forEach(function (client) {
+            if (client.seamless)
+                client.seamless(data);
             else
-                e.status = data;
+                client.status = data;
         });
     }
     function Receiver(response) {
-        let data = response.data || response;
-        self.buffer.write(data).then((data) => ToDOM(data));
+        self.buffer.write(response).then((data) => ToDOM(data));
     }
     function Connect(receiver) {
         if (((self.url.search(/^wss?:\/\//i) >= 0)) && WebSocket) {
