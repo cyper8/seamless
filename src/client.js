@@ -8,15 +8,22 @@ export class SeamlessClient {
         let seamless = {
             value: Function,
             enumerable: true,
+            configurable: true,
         };
         let deseamless = {
             value: function deseamless() {
-                delete this.seamless;
-                if (this.removeEventListener) {
-                    this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+                if (this.seamless !== undefined) {
+                    delete this.seamless;
+                    if (this.removeEventListener) {
+                        this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+                    }
                 }
-            }.bind(element),
+                if (this.status) {
+                    delete this.status;
+                }
+            }.bind(this),
             enumerable: true,
+            configurable: true,
         };
         let status = {
             get() {
@@ -26,6 +33,7 @@ export class SeamlessClient {
                 transmit(v);
             },
             enumerable: true,
+            configurable: true,
         };
         if (element instanceof HTMLElement) {
             element.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);

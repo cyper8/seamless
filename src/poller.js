@@ -13,7 +13,7 @@ export function poller(url, receiver) {
         return __awaiter(this, void 0, void 0, function* () {
             let response;
             let endpoint = encodeURI(url);
-            // console.log(endpoint);
+            console.log(endpoint);
             let options = {
                 method: (!data || data == '') ? 'GET' : 'POST',
                 headers: {
@@ -77,7 +77,7 @@ export function poller(url, receiver) {
     function init() {
         return request(url + '?nopoll=true', '')
             .then((response) => {
-            // console.log('initialized');
+            console.log('initialized');
             receiver(response);
         });
     }
@@ -86,7 +86,7 @@ export function poller(url, receiver) {
             .then((response) => receiver(response));
     }
     function poll() {
-        // console.log('polling');
+        console.log('polling');
         return request(url, '')
             .then(function (response) {
             receiver(response);

@@ -11,16 +11,23 @@ export class SeamlessClient {
     let seamless: PropertyDescriptor = {
       value: Function,
       enumerable: true,
+      configurable: true,
     };
 
     let deseamless: PropertyDescriptor = {
       value: function deseamless() {
-        delete this.seamless;
-        if (this.removeEventListener) {
-          this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+        if (this.seamless !== undefined) {
+          delete this.seamless;
+          if (this.removeEventListener) {
+            this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+          }
         }
-      }.bind(element),
+        if (this.status) {
+          delete this.status
+        }
+      }.bind(this),
       enumerable: true,
+      configurable: true,
     };
 
     let status: PropertyDescriptor = {
@@ -31,6 +38,7 @@ export class SeamlessClient {
         transmit(v);
       },
       enumerable: true,
+      configurable: true,
     };
 
     if (element instanceof HTMLElement) {
