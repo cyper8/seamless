@@ -22,7 +22,7 @@ var element1,
 
 describe("Seamless", function() {
 
-  beforeAll(function(done) {
+  beforeAll(function() {
     window.SyncTest = SyncTest;
     element1 = document.createElement("div");
     element1.setAttribute("data-seamless", "/gtest/100000000000000000000000");
@@ -32,10 +32,6 @@ describe("Seamless", function() {
     element2.setAttribute("data-sync", "SyncTest");
     document.body.appendChild(element2);
     seamlessReady = Seamless.compile(document.body);
-    seamlessReady.then((conn)=>{
-      console.log('connected');
-      done();
-    });
   });
   
   afterAll(function() {
@@ -45,6 +41,13 @@ describe("Seamless", function() {
   it('should be singleton', function() {
     expect(Seamless).toBeDefined();
     expect(typeof Seamless).toBe('object');
+  });
+
+  it('should connect to endpoints', function(done){
+    seamlessReady.then((connections)=>{
+      expect(connections.length).toBe(2);
+      done();
+    });
   });
 
   xit("has binded one client to each of two endpoints", function() {
