@@ -30,9 +30,9 @@ export function Connection(url: string):void {
 
   function Connect(receiver: Function):Promise<Function> {
     if (((self.url.search(/^wss?:\/\//i) >= 0)) && WebSocket) {
-      return socket(url, receiver);
+      return socket(self.url, receiver);
     } else {
-      return poller(url.replace(/^ws/, "http"), receiver);
+      return poller(self.url.replace(/^ws/, "http"), receiver);
     }
   }
 

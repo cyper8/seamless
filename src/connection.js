@@ -18,10 +18,10 @@ export function Connection(url) {
     }
     function Connect(receiver) {
         if (((self.url.search(/^wss?:\/\//i) >= 0)) && WebSocket) {
-            return socket(url, receiver);
+            return socket(self.url, receiver);
         }
         else {
-            return poller(url.replace(/^ws/, "http"), receiver);
+            return poller(self.url.replace(/^ws/, "http"), receiver);
         }
     }
     function Transmit(data) {
