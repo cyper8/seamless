@@ -1,11 +1,11 @@
 import { Buffer } from './buffer.js';
-import { ComplementUrl } from './utils/complement-url.js';
+import { ComplementUrl, URLString } from './utils/complement-url.js';
 import { socket } from './socket.js';
 import { poller } from './poller.js';
 import { SeamlessClient } from './client.js';
 
 export declare interface Connection {
-  url: string
+  url: URLString
   buffer: Buffer
   clients: Array<SeamlessClient>
   then(callback: (param: Connection)=>any): Promise<any>
@@ -45,10 +45,16 @@ export function Connection(url: string):void {
     });
   }
 
+
   this.url = ComplementUrl(url);
   this.buffer = new Buffer(this.url);
   this.clients = [];
-  this.then = (callback) => Transmitter.then(()=>callback(this));
+
+  const Transmitter:Promise<Function> = Connect(Receiver);
+
+  this.then = function(callback) {
+    return Transmitter.then(()=>callback(self));
+  };
 
   this.bindClients = function(elements: Array<HTMLElement|Function|Object>): Connection {
     this.clients = elements.map(
@@ -68,7 +74,5 @@ export function Connection(url: string):void {
     });
     return self;
   };
-
-  const Transmitter:Promise<Function> = Connect(Receiver);
 
 }

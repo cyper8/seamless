@@ -1,6 +1,11 @@
-export function ComplementUrl(url: string): string {
+export interface URLString extends String {
+
+}
+
+export function ComplementUrl(url: string): URLString {
   let proto: string;
   let host: string;
+  let validUrl: URLString;
   let p: Array<string> = url.split("/");
 
   if (p[0].search(/:$/) !== -1) { // schema in 0 element
@@ -10,16 +15,18 @@ export function ComplementUrl(url: string): string {
     if (p[0] === '') p.shift();
   }
 
-  if (p[0] === '') { // 
+  if (p[0] === '') { //
     p.shift();
     host = p.shift();
   }
-  
+
   if (!host || (host === '')) {
     host = window.location.host;
   }
 
-  // all elements left are components of path
+  validUrl = encodeURI(`${proto}//${host}/${p.join('/')}`);
 
-  return `${proto}//${host}/${p.join('/')}`;
+  if (new URL(<string>validUrl)) {
+    return validUrl;
+  }
 }

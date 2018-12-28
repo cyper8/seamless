@@ -35,7 +35,10 @@ export function Connection(url) {
     this.url = ComplementUrl(url);
     this.buffer = new Buffer(this.url);
     this.clients = [];
-    this.then = (callback) => Transmitter.then(() => callback(this));
+    const Transmitter = Connect(Receiver);
+    this.then = function (callback) {
+        return Transmitter.then(() => callback(self));
+    };
     this.bindClients = function (elements) {
         this.clients = elements.map((element) => new SeamlessClient(element, Transmit, self.buffer.data));
         return self;
@@ -52,6 +55,5 @@ export function Connection(url) {
         });
         return self;
     };
-    const Transmitter = Connect(Receiver);
 }
 //# sourceMappingURL=connection.js.map

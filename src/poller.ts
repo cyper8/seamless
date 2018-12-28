@@ -1,12 +1,13 @@
-export function poller(url:string, receiver:Function): Promise<Function> {
+import { URLString } from './utils/complement-url.js';
+
+export function poller(url:URLString, receiver:Function): Promise<Function> {
 
   let timer: number;
   let rc: number = 0;
 
-  async function request(url: string, data: BodyInit): Promise<any> {
+  async function request(url: URLString, data: BodyInit): Promise<any> {
     let response: Object;
-    let endpoint = encodeURI(url);
-    console.log(endpoint);
+    console.log(url);
     let options = {
       method: (!data || data == '') ? 'GET' : 'POST',
       headers: {
@@ -24,7 +25,7 @@ export function poller(url:string, receiver:Function): Promise<Function> {
       let abortSignal = abortController.signal;
       options["signal"] = abortSignal;
       let abortableFetch = Promise.race([
-        fetch(endpoint, options).then((res)=>{
+        fetch(<string>url, options).then((res)=>{
           if (res.status === 200) {
             return res.json();
           }
@@ -59,7 +60,7 @@ export function poller(url:string, receiver:Function): Promise<Function> {
         xhr.addEventListener("error", Abort);
         xhr.addEventListener("timeout", Abort);
         xhr.responseType = 'json';
-        xhr.open(options.method, endpoint, true);
+        xhr.open(options.method, <string>url, true);
         for (let h in options.headers) {
           xhr.setRequestHeader(h, options.headers[h]);
         }

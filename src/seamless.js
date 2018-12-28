@@ -11,7 +11,9 @@ export const Seamless = {
             let clientNode = clients[i];
             new_connections.push(Seamless.connect(clientNode.dataset.seamless)
                 .bindClients([clientNode])
-                .then((connection) => connection));
+                .then((connection) => {
+                return connection;
+            }));
         }
         return Promise.all(new_connections);
     },
@@ -23,14 +25,14 @@ export const Seamless = {
         let connection = Seamless.getConnection(endpoint);
         if (!connection) {
             connection = new Connection(endpoint);
-            Seamless.connections.set(connection.url, connection);
+            Seamless.connections.set(MD5(connection.url), connection);
         }
         return connection;
     },
     disconnect(endpoint) {
         let connection = Seamless.getConnection(endpoint);
         connection.unbindClients();
-        return Seamless.connections.delete(connection.url);
+        return Seamless.connections.delete(MD5(connection.url));
     }
 };
 //# sourceMappingURL=seamless.js.map

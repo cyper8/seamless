@@ -1,12 +1,13 @@
+import { URLString } from './utils/complement-url.js';
 
-export async function socket(url: string, Rx: Function): Promise<Function> {
+export async function socket(url: URLString, Rx: Function): Promise<Function> {
   let t: number;
   let rc: number = 0;
   let ec: number = 0;
   let connection: Promise<WebSocket>;
   connection = (function connect(): Promise<WebSocket> {
     return new Promise<WebSocket>(function(resolve) {
-      var socket: WebSocket = new WebSocket(url);
+      var socket: WebSocket = new WebSocket(<string>url);
       t = window.setTimeout(socket.close, 9000);
       socket.onclose = function() {
         clearTimeout(t);

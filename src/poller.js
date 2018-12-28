@@ -12,8 +12,7 @@ export function poller(url, receiver) {
     function request(url, data) {
         return __awaiter(this, void 0, void 0, function* () {
             let response;
-            let endpoint = encodeURI(url);
-            console.log(endpoint);
+            console.log(url);
             let options = {
                 method: (!data || data == '') ? 'GET' : 'POST',
                 headers: {
@@ -29,7 +28,7 @@ export function poller(url, receiver) {
                 let abortSignal = abortController.signal;
                 options["signal"] = abortSignal;
                 let abortableFetch = Promise.race([
-                    fetch(endpoint, options).then((res) => {
+                    fetch(url, options).then((res) => {
                         if (res.status === 200) {
                             return res.json();
                         }
@@ -64,7 +63,7 @@ export function poller(url, receiver) {
                     xhr.addEventListener("error", Abort);
                     xhr.addEventListener("timeout", Abort);
                     xhr.responseType = 'json';
-                    xhr.open(options.method, endpoint, true);
+                    xhr.open(options.method, url, true);
                     for (let h in options.headers) {
                         xhr.setRequestHeader(h, options.headers[h]);
                     }

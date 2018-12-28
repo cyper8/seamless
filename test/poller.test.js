@@ -4,8 +4,12 @@ let receiver = jasmine.createSpy('receiver_function');
 let transmitter;
 
 describe("poller async function connects to endpoint and", function() {
-  beforeAll(async function() {
-    transmitter = await poller('http://localhost:8080/gtest/100000000000000000000000', receiver);
+  beforeAll(function(done) {
+    poller('http://localhost:8080/gtest/100000000000000000000000', receiver)
+    .then((transmit)=>{
+      transmitter = transmit;
+      done();
+    });
   });
   it('should return a function', function() {
     expect(typeof transmitter === 'function').toBeTruthy();
@@ -20,12 +24,15 @@ describe("poller async function connects to endpoint and", function() {
       "addresee": "Bob"
     });
   });
-  it('should keep polling data', async function() {
-    let watch_receive = await (new Promise((resolve)=>{
+  it('should keep polling data', function(done) {
+    (new Promise((resolve)=>{
       setTimeout(()=>{
         resolve(receiver);
-      }, 30000);
-    }));
-    expect(watch_receive).toHaveBeenCalledTimes(2);
+      }, 34000);
+    }))
+    .then((callback)=>{
+      expect(callback).toHaveBeenCalledTimes(2);
+      done();
+    });
   }, 35000);
 });

@@ -1,12 +1,12 @@
-import { md5 } from './md5.js';
+import { md5, MD5Hash } from './md5.js';
 import { storage } from './storage.js';
 
 const MD5 = md5();
 const STORAGE:Storage = storage();
 
 export class Buffer {
-  hash: string
-  datahash: Promise<string>
+  hash: MD5Hash
+  datahash: Promise<MD5Hash>
   cache: Promise<Object>|Object
 
   constructor(url:string) {
@@ -15,7 +15,7 @@ export class Buffer {
   }
 
   async __init(): Promise<Buffer> {
-    await (this.datahash = Promise.resolve(STORAGE.getItem(this.hash)));
+    await (this.datahash = Promise.resolve(STORAGE.getItem(<string>this.hash)));
     await this.__retrieve();
     return this;
   }
@@ -29,7 +29,7 @@ export class Buffer {
 
   async __retrieve():Promise<Object> {
     let dh = await this.datahash;
-    return this.__cache(STORAGE.getItem(dh) || '');
+    return this.__cache(STORAGE.getItem(<string>dh) || '');
   }
 
   __cache(data:string):string {
@@ -53,13 +53,13 @@ export class Buffer {
       console.error(error);
       val = '';
     }
-    let dh:string = MD5(val);
+    let dh:MD5Hash = MD5(val);
     if (dh !== odh) {
-      this.datahash = Promise.resolve(STORAGE.removeItem(odh))
+      this.datahash = Promise.resolve(STORAGE.removeItem(<string>odh))
       .then(()=>{
         this.__cache(val);
-        Promise.resolve(STORAGE.setItem(dh,val));
-        Promise.resolve(STORAGE.setItem(this.hash, dh));
+        Promise.resolve(STORAGE.setItem(<string>dh,val));
+        Promise.resolve(STORAGE.setItem(<string>this.hash, <string>dh));
         return dh;
       });
     }
@@ -80,8 +80,8 @@ export class Buffer {
 
   async clear(): Promise<Buffer> {
     let dh = await this.datahash;
-    STORAGE.removeItem(dh);
-    STORAGE.removeItem(this.hash);
+    STORAGE.removeItem(<string>dh);
+    STORAGE.removeItem(<string>this.hash);
     return await this.__init();
   }
 
