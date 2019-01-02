@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <title>Seamless Tests</title>
     <link rel="stylesheet" type="text/css" href="./base.css" />
-    <script type="text/javascript" src="./seamless-client.min.js">
+    <script type="module">
+      import { Seamless } from './src/seamless.js';
+
+      window.Seamless = Seamless;
     </script>
   </head>
   <body>
@@ -31,8 +34,8 @@
       }
     }
 
-    window.addEventListener('load', function() {
-      Seamless.compile(document.body);
-    });
+    // window.addEventListener('load', function() {
+    //   Seamless.compile(document.body);
+    // });
   </script>
 </html>

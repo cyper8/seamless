@@ -5,7 +5,7 @@ let transmitter;
 
 describe("poller async function connects to endpoint and", function() {
   beforeAll(function(done) {
-    poller('http://localhost:8080/gtest/100000000000000000000000', receiver)
+    poller('http://localhost:8080/gtest/100000000000000000000001', receiver)
     .then((transmit)=>{
       transmitter = transmit;
       done();
@@ -16,11 +16,11 @@ describe("poller async function connects to endpoint and", function() {
   });
   it('should receive initial data', function() {
     expect(receiver).toHaveBeenCalledWith({
-      "_id": "100000000000000000000000",
-      "type": "greeting",
+      "_id": "100000000000000000000001",
+      "type": "introduction",
       "count": 1,
-      "hoverable": false,
-      "message": "Hello!",
+      "hoverable": true,
+      "message": "I'm Seamless",
       "addresee": "Bob"
     });
   });

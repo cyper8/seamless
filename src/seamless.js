@@ -11,9 +11,7 @@ export const Seamless = {
             let clientNode = clients[i];
             new_connections.push(Seamless.connect(clientNode.dataset.seamless)
                 .bindClients([clientNode])
-                .then((connection) => {
-                return connection;
-            }));
+                .established);
         }
         return Promise.all(new_connections);
     },

@@ -59,7 +59,7 @@ function DataStore() {
           res.json(getData(req.params[queryparams]));
         } else {
           setTimeout(function() {
-            res.status(200).type('json').end();
+            res.status(200).json(getData(req.params[queryparams]));
           }, 29000);
         }
       } else if (req.method == 'POST') {

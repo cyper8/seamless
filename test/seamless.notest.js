@@ -20,15 +20,15 @@ var element1,
   element2,
   seamlessReady;
 
-describe("Seamless", function() {
+xdescribe("Seamless", function() {
 
   beforeAll(function() {
     window.SyncTest = SyncTest;
     element1 = document.createElement("div");
-    element1.setAttribute("data-seamless", "/gtest/100000000000000000000001");
+    element1.setAttribute("data-seamless", "/gtest/100000000000000000000002");
     document.body.appendChild(element1);
     element2 = document.createElement("div");
-    element2.setAttribute("data-seamless", "/gtest/100000000000000000000002");
+    element2.setAttribute("data-seamless", "/gtest/100000000000000000000003");
     element2.setAttribute("data-sync", "SyncTest");
     document.body.appendChild(element2);
     // seamlessReady = Seamless.compile(document.body);
@@ -41,10 +41,10 @@ describe("Seamless", function() {
 
   describe("has API to add connections and their clients", function() {
 
-    let endpoint = '/gtest/100000000000000000000000';
+    let endpoint = '/gtest/100000000000000000000002';
 
     beforeAll(function(done) {
-      Seamless.connect(endpoint).then(done);
+      Seamless.connect(endpoint).established.then(done);
     });
 
     afterAll(function() {
@@ -52,7 +52,7 @@ describe("Seamless", function() {
     });
 
     it('should connect to endpoint', function(done) {
-      Seamless.getConnection(endpoint).then((connection)=>{
+      Seamless.getConnection(endpoint).established.then((connection)=>{
         expect(connection.url).toMatch(new RegExp(endpoint));
         done();
       });
@@ -64,14 +64,10 @@ describe("Seamless", function() {
     });
   });
 
-  describe('has API to automatically process DOM', function() {
+  xdescribe('has API to automatically process DOM', function() {
 
     beforeAll(function() {
       seamlessReady = Seamless.compile(document.body);
-      console.log(typeof seamlessReady);
-      seamlessReady.then((c) => {
-        console.log(c);
-      });
     });
 
     afterAll(function() {
@@ -81,7 +77,7 @@ describe("Seamless", function() {
       }
     });
 
-    it('should connect to endpoints', function(done){
+    xit('should connect to endpoints', function(done){
       seamlessReady.then((connections)=>{
         expect(connections.length).toBe(2);
         done();
@@ -98,7 +94,7 @@ describe("Seamless", function() {
     xit("has one client populated by default sync", function(done) {
       function Tests() {
         expect(element1.children.length).toBe(4);
-        expect(element1.getAttribute("_id")).toBe("100000000000000000000000");
+        expect(element1.getAttribute("_id")).toBe("100000000000000000000002");
         expect(element1.getAttribute("hoverable")).toBe("false");
         done();
       }
@@ -108,7 +104,7 @@ describe("Seamless", function() {
     xit("has other client populated by SyncTest function", function(done) {
       function Tests() {
         expect(element2.children.length).toBe(0);
-        expect(element2.innerText).toMatch(/100000000000000000000001/);
+        expect(element2.innerText).toMatch(/100000000000000000000003/);
         expect(element2.seamless).toMatch(/SyncTest/);
         done();
       }

@@ -5,8 +5,7 @@ export function poller(url:URLString, receiver:Function): Promise<Function> {
   let timer: number;
   let rc: number = 0;
 
-  async function request(url: URLString, data: BodyInit): Promise<any> {
-    let response: Object;
+  function request(url: URLString, data: BodyInit): Promise<Object> {
     console.log(url);
     let options = {
       method: (!data || data == '') ? 'GET' : 'POST',
@@ -24,7 +23,7 @@ export function poller(url:URLString, receiver:Function): Promise<Function> {
       let abortController = new AbortController();
       let abortSignal = abortController.signal;
       options["signal"] = abortSignal;
-      let abortableFetch = Promise.race([
+      return Promise.race([
         fetch(<string>url, options).then((res)=>{
           if (res.status === 200) {
             return res.json();
@@ -38,10 +37,9 @@ export function poller(url:URLString, receiver:Function): Promise<Function> {
           reject('Fetch timeout reached. Request aborted.');
         }, 30000)),
       ]);
-      response = await abortableFetch;
     }
     else {
-      response = await (new Promise(function(resolve):void {
+      return (new Promise(function(resolve):void {
         var xhr: XMLHttpRequest = new XMLHttpRequest();
         const Abort = function(reason){
           console.error(reason);
@@ -67,7 +65,6 @@ export function poller(url:URLString, receiver:Function): Promise<Function> {
         xhr.send(data || '');
       }));
     }
-    return response;
   }
 
   function init() {

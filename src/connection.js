@@ -36,9 +36,11 @@ export function Connection(url) {
     this.buffer = new Buffer(this.url);
     this.clients = [];
     const Transmitter = Connect(Receiver);
-    this.then = function (callback) {
-        return Transmitter.then(() => callback(self));
-    };
+    this.established = new Promise((resolve) => {
+        Transmitter.then(() => {
+            resolve(self);
+        });
+    });
     this.bindClients = function (elements) {
         this.clients = elements.map((element) => new SeamlessClient(element, Transmit, self.buffer.data));
         return self;

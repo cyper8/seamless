@@ -14,7 +14,7 @@ app.ws('/test/:_id', store.WSEndpointFor("_id"));
 app.use(express.static(`${__dirname}`, {
   maxAge: 1000
 }));
-app.use(express.static(`${__dirname}/../../bin`, {
+app.use(express.static(`${__dirname}/../../`, {
   maxAge: 1000
 }));
 

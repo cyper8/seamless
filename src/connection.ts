@@ -8,7 +8,7 @@ export declare interface Connection {
   url: URLString
   buffer: Buffer
   clients: Array<SeamlessClient>
-  then(callback: (param: Connection)=>any): Promise<any>
+  established: Promise<Connection>
   bindClients(elements: Array<HTMLElement|Function|Object>): Connection
   unbindClients(elements?: Array<SeamlessClient>): Connection
 }
@@ -52,9 +52,11 @@ export function Connection(url: string):void {
 
   const Transmitter:Promise<Function> = Connect(Receiver);
 
-  this.then = function(callback) {
-    return Transmitter.then(()=>callback(self));
-  };
+  this.established = new Promise((resolve)=>{
+    Transmitter.then(()=>{
+      resolve(self);
+    });
+  });
 
   this.bindClients = function(elements: Array<HTMLElement|Function|Object>): Connection {
     this.clients = elements.map(

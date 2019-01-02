@@ -7,7 +7,7 @@ export default [
 		input: 'src/seamless.js',
 		output: {
 			name: 'Seamless',
-			file: 'seamless-bundle.js',
+			file: 'bin/seamless-bundle.js',
 			format: 'iife'
 		},
 		plugins: [
@@ -20,7 +20,7 @@ export default [
 		input: 'src/seamless.js',
 		output: {
 			name: 'Seamless',
-			file: 'seamless-bundle.min.js',
+			file: 'bin/seamless-bundle.min.js',
 			format: 'iife'
 		},
 		plugins: [

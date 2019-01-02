@@ -29,7 +29,7 @@ describe(`Connection instance`, function() {
     expect(testConnection.clients.length).toBe(0);
   });
   it('should provide "then" method to chain to connection process', function(done) {
-    testConnection.then((connection)=>{
+    testConnection.established.then((connection)=>{
       expect(connection).toBe(testConnection);
       done();
     });
