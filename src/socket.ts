@@ -1,35 +1,50 @@
 import { URLString } from './utils/complement-url.js';
+import { ChannelBackend } from './channel';
 
-export async function socket(url: URLString, Rx: Function): Promise<Function> {
-  let t: number;
-  let rc: number = 0;
-  let ec: number = 0;
-  let connection: Promise<WebSocket>;
-  connection = (function connect(): Promise<WebSocket> {
-    return new Promise<WebSocket>(function(resolve) {
-      var socket: WebSocket = new WebSocket(<string>url);
-      t = window.setTimeout(socket.close, 9000);
-      socket.onclose = function() {
-        clearTimeout(t);
-        rc++;
-        if (rc < 5) connection = connect();
-        else throw new Error(url+' does not answer');
+export class Socket implements ChannelBackend {
+  socket: WebSocket
+  private __connection: Promise<WebSocket>
+  private __url: URLString
+  private __receive: Function
+  private __timer: number
+  private __reconnectCount: number = 0
+  private __errorCount: number = 0
+
+  get transmitter(): Promise<(data: BodyInit)=>Promise<void>> {
+    return this.__connection.then(()=>this.__send.bind(this));
+  }
+
+  private __send(data: Blob|string|ArrayBuffer): void {
+    this.__connection.then(function(active_socket: WebSocket) {
+      active_socket.send(data);
+    });
+  }
+
+  private __connect(): Promise<WebSocket> {
+    return new Promise<WebSocket>((resolve) => {
+      this.socket = new WebSocket(<string>this.__url);
+      this.__timer = window.setTimeout(this.socket.close, 9000);
+      this.socket.onclose = () => {
+        clearTimeout(this.__timer);
+        this.__reconnectCount++;
+        if (this.__reconnectCount < 5) this.__connection = this.__connect();
+        else throw new Error(this.__url+' does not answer');
       };
-      socket.onerror = function(e) {
+      this.socket.onerror = (e) => {
         console.error(e);
-        ec++;
-        if (ec > 10) {
-          ec = 0;
-          socket.close();
+        this.__errorCount++;
+        if (this.__errorCount > 10) {
+          this.__errorCount = 0;
+          this.socket.close();
         }
       };
-      socket.onopen = function() {
-        clearTimeout(t);
-        rc = 0;
-        ec = 0;
-        resolve(socket);
+      this.socket.onopen = () => {
+        clearTimeout(this.__timer);
+        this.__reconnectCount = 0;
+        this.__errorCount = 0;
+        resolve(this.socket);
       };
-      socket.onmessage = function(e) {
+      this.socket.onmessage = (e) => {
         let data: Object;
         try {
           data = JSON.parse(e.data);
@@ -37,15 +52,70 @@ export async function socket(url: URLString, Rx: Function): Promise<Function> {
           throw error;
         }
         if (data) {
-          Rx(data);
+          this.__receive(data);
         }
       };
     });
-  })();
-  await connection;
-  return function(data: Blob|string|ArrayBuffer): void {
-    connection.then(function(active_socket: WebSocket) {
-      active_socket.send(data);
-    });
-  };
+  }
+
+  close(): void {
+    this.socket.onclose = undefined;
+    this.socket.close();
+  }
+
+  constructor(url: URLString, receive: Function) {
+    this.__url = url;
+    this.__receive = receive;
+    this.__connection = this.__connect();
+  }
 }
+
+// export async function socket(url: URLString, Rx: Function): Promise<Function> {
+//   let t: number;
+//   let rc: number = 0;
+//   let ec: number = 0;
+//   let connection: Promise<WebSocket>;
+//   connection = (function connect(): Promise<WebSocket> {
+//     return new Promise<WebSocket>(function(resolve) {
+//       var socket: WebSocket = new WebSocket(<string>url);
+//       t = window.setTimeout(socket.close, 9000);
+//       socket.onclose = function() {
+//         clearTimeout(t);
+//         rc++;
+//         if (rc < 5) connection = connect();
+//         else throw new Error(url+' does not answer');
+//       };
+//       socket.onerror = function(e) {
+//         console.error(e);
+//         ec++;
+//         if (ec > 10) {
+//           ec = 0;
+//           socket.close();
+//         }
+//       };
+//       socket.onopen = function() {
+//         clearTimeout(t);
+//         rc = 0;
+//         ec = 0;
+//         resolve(socket);
+//       };
+//       socket.onmessage = function(e) {
+//         let data: Object;
+//         try {
+//           data = JSON.parse(e.data);
+//         } catch(error) {
+//           throw error;
+//         }
+//         if (data) {
+//           Rx(data);
+//         }
+//       };
+//     });
+//   })();
+//   await connection;
+//   return function(data: Blob|string|ArrayBuffer): void {
+//     connection.then(function(active_socket: WebSocket) {
+//       active_socket.send(data);
+//     });
+//   };
+// }

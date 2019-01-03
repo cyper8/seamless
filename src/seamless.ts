@@ -10,6 +10,7 @@ declare interface Seamless {
   getConnection(endpoint:string): Connection
   connect(endpoint: string): Connection
   disconnect(endpoint: string): Boolean
+  shutdown(): void
 }
 
 export const Seamless: Seamless = {
@@ -46,6 +47,14 @@ export const Seamless: Seamless = {
   disconnect(endpoint) {
     let connection = Seamless.getConnection(endpoint);
     connection.unbindClients();
+    connection.close();
     return Seamless.connections.delete(MD5(<string>connection.url));
+  },
+
+  shutdown() {
+    let endpoint;
+    for (endpoint in Seamless.connections.keys) {
+      Seamless.disconnect(endpoint);
+    }
   }
 };

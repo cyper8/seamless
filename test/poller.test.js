@@ -1,15 +1,19 @@
-import { poller } from '../src/poller.js';
+import { Poller } from '../src/poller.js';
 
-let receiver = jasmine.createSpy('receiver_function');
+let poller;
+let receiver;
 let transmitter;
 
 describe("poller async function connects to endpoint and", function() {
   beforeAll(function(done) {
-    poller('http://localhost:8080/gtest/100000000000000000000001', receiver)
-    .then((transmit)=>{
+    receiver = jasmine.createSpy('receiver_function', done).and.callThrough();
+    poller = new Poller('http://localhost:8080/gtest/100000000000000000000001', receiver);
+    poller.transmitter.then((transmit)=>{
       transmitter = transmit;
-      done();
     });
+  });
+  afterAll(function() {
+    poller.close();
   });
   it('should return a function', function() {
     expect(typeof transmitter === 'function').toBeTruthy();

@@ -30,7 +30,14 @@ export const Seamless = {
     disconnect(endpoint) {
         let connection = Seamless.getConnection(endpoint);
         connection.unbindClients();
+        connection.close();
         return Seamless.connections.delete(MD5(connection.url));
+    },
+    shutdown() {
+        let endpoint;
+        for (endpoint in Seamless.connections.keys) {
+            Seamless.disconnect(endpoint);
+        }
     }
 };
 //# sourceMappingURL=seamless.js.map

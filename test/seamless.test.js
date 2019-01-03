@@ -20,7 +20,7 @@ var element1,
   element2,
   seamlessReady;
 
-xdescribe("Seamless", function() {
+describe("Seamless", function() {
 
   beforeAll(function() {
     window.SyncTest = SyncTest;
@@ -33,6 +33,10 @@ xdescribe("Seamless", function() {
     document.body.appendChild(element2);
     // seamlessReady = Seamless.compile(document.body);
   });
+
+  // afterAll(function() {
+  //   Seamless.shutdown();
+  // });
 
   it('should be singleton', function() {
     expect(Seamless).toBeDefined();
@@ -64,48 +68,51 @@ xdescribe("Seamless", function() {
     });
   });
 
-  xdescribe('has API to automatically process DOM', function() {
+  describe('has API to automatically process DOM', function() {
 
     beforeAll(function() {
       seamlessReady = Seamless.compile(document.body);
     });
 
     afterAll(function() {
-      let connection;
-      for (connection of Seamless.connections.entries()) {
-        Seamless.disconnect(connection.url);
-      }
+      Seamless.shutdown();
     });
 
-    xit('should connect to endpoints', function(done){
+    it('should connect to endpoints', function(done){
       seamlessReady.then((connections)=>{
         expect(connections.length).toBe(2);
         done();
       });
     });
 
-    xit("has binded one client to each of two endpoints", function() {
+    it("has binded one client to each of two endpoints", function() {
       Seamless.connections.forEach((connection)=>{
         expect(connection.clients.length).toBe(1);
       });
       expect(Seamless.connections.size).toBe(2);
     });
 
-    xit("has one client populated by default sync", function(done) {
+    it("has one client populated by default sync", function(done) {
       function Tests() {
         expect(element1.children.length).toBe(4);
         expect(element1.getAttribute("_id")).toBe("100000000000000000000002");
-        expect(element1.getAttribute("hoverable")).toBe("false");
+        expect(element1.getAttribute("hoverable")).toBe("true");
         done();
       }
       seamlessReady.then(Tests);// element1.connection.then(Tests);
     });
 
-    xit("has other client populated by SyncTest function", function(done) {
+    it("has other client populated by SyncTest function", function(done) {
       function Tests() {
         expect(element2.children.length).toBe(0);
-        expect(element2.innerText).toMatch(/100000000000000000000003/);
-        expect(element2.seamless).toMatch(/SyncTest/);
+        expect(element2.innerText).toEqual(JSON.stringify({
+          "_id": "100000000000000000000003",
+          "type": "writeoff",
+          "count": 1,
+          "hoverable": false,
+          "message": "So long!",
+          "addresee": "Bob"
+        }));
         done();
       }
       seamlessReady.then(Tests);// element2.connection.then(Tests);
