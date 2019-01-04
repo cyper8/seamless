@@ -210,14 +210,6 @@ var Seamless = (function (exports) {
         }
     }
 
-    var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-        return new (P || (P = Promise))(function (resolve, reject) {
-            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-            function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-            step((generator = generator.apply(thisArg, _arguments || [])).next());
-        });
-    };
     const MD5 = md5();
     const STORAGE = storage();
     class Buffer {
@@ -226,25 +218,18 @@ var Seamless = (function (exports) {
             this.__init();
         }
         __init() {
-            return __awaiter(this, void 0, void 0, function* () {
-                yield (this.datahash = Promise.resolve(STORAGE.getItem(this.hash)));
-                yield this.__retrieve();
-                return this;
-            });
+            this.datahash = Promise.resolve(STORAGE.getItem(this.hash));
+            return this.__retrieve().then(() => this);
         }
         read() {
-            return __awaiter(this, void 0, void 0, function* () {
-                return Promise.race([
-                    this.cache,
-                    this.__retrieve()
-                ]);
-            });
+            return Promise.race([
+                this.cache,
+                this.__retrieve()
+            ]);
         }
         __retrieve() {
-            return __awaiter(this, void 0, void 0, function* () {
-                let dh = yield this.datahash;
-                return this.__cache(STORAGE.getItem(dh) || '');
-            });
+            return this.datahash
+                .then((dh) => this.__cache(STORAGE.getItem(dh) || ''));
         }
         __cache(data) {
             let d;
@@ -259,23 +244,22 @@ var Seamless = (function (exports) {
             return (this.cache = d);
         }
         write(v) {
-            return __awaiter(this, void 0, void 0, function* () {
-                let odh = yield this.datahash;
-                let val;
-                try {
-                    val = JSON.stringify(v);
-                }
-                catch (error) {
-                    console.error(error);
-                    val = '';
-                }
-                let dh = MD5(val);
+            let val;
+            try {
+                val = JSON.stringify(v);
+            }
+            catch (error) {
+                console.error(error);
+                val = '';
+            }
+            let dh = MD5(val);
+            return this.datahash.then((odh) => {
                 if (dh !== odh) {
                     this.datahash = Promise.resolve(STORAGE.removeItem(odh))
                         .then(() => {
                         this.__cache(val);
-                        Promise.resolve(STORAGE.setItem(dh, val));
-                        Promise.resolve(STORAGE.setItem(this.hash, dh));
+                        STORAGE.setItem(dh, val);
+                        STORAGE.setItem(this.hash, dh);
                         return dh;
                     });
                 }
@@ -294,185 +278,241 @@ var Seamless = (function (exports) {
             this.write(v);
         }
         clear() {
-            return __awaiter(this, void 0, void 0, function* () {
-                let dh = yield this.datahash;
+            return this.datahash
+                .then((dh) => {
                 STORAGE.removeItem(dh);
                 STORAGE.removeItem(this.hash);
-                return yield this.__init();
-            });
+            })
+                .then(() => this.__init());
         }
     }
 
-    var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-        return new (P || (P = Promise))(function (resolve, reject) {
-            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-            function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-            step((generator = generator.apply(thisArg, _arguments || [])).next());
-        });
-    };
-    function socket(url, Rx) {
-        return __awaiter$1(this, void 0, void 0, function* () {
-            let t;
-            let rc = 0;
-            let ec = 0;
-            let connection;
-            connection = (function connect() {
-                return new Promise(function (resolve) {
-                    var socket = new WebSocket(url);
-                    t = window.setTimeout(socket.close, 9000);
-                    socket.onclose = function () {
-                        clearTimeout(t);
-                        rc++;
-                        if (rc < 5)
-                            connection = connect();
-                        else
-                            throw new Error(url + ' does not answer');
-                    };
-                    socket.onerror = function (e) {
-                        console.error(e);
-                        ec++;
-                        if (ec > 10) {
-                            ec = 0;
-                            socket.close();
-                        }
-                    };
-                    socket.onopen = function () {
-                        clearTimeout(t);
-                        rc = 0;
-                        ec = 0;
-                        resolve(socket);
-                    };
-                    socket.onmessage = function (e) {
-                        let data;
-                        try {
-                            data = JSON.parse(e.data);
-                        }
-                        catch (error) {
-                            throw error;
-                        }
-                        if (data) {
-                            Rx(data);
-                        }
-                    };
-                });
-            })();
-            yield connection;
-            return function (data) {
-                connection.then(function (active_socket) {
-                    active_socket.send(data);
-                });
-            };
-        });
+    class Socket {
+        constructor(url, receive) {
+            this.__reconnectCount = 0;
+            this.__errorCount = 0;
+            this.__url = url;
+            this.__receive = receive;
+            this.__connection = this.__connect();
+        }
+        get transmitter() {
+            return this.__connection.then(() => this.__send.bind(this));
+        }
+        __send(data) {
+            this.__connection.then(function (active_socket) {
+                active_socket.send(data);
+            });
+        }
+        __connect() {
+            return new Promise((resolve) => {
+                this.socket = new WebSocket(this.__url);
+                this.__timer = window.setTimeout(this.socket.close, 9000);
+                this.socket.onclose = () => {
+                    clearTimeout(this.__timer);
+                    this.__reconnectCount++;
+                    if (this.__reconnectCount < 5)
+                        this.__connection = this.__connect();
+                    else
+                        throw new Error(this.__url + ' does not answer');
+                };
+                this.socket.onerror = (e) => {
+                    console.error(e);
+                    this.__errorCount++;
+                    if (this.__errorCount > 10) {
+                        this.__errorCount = 0;
+                        this.socket.close();
+                    }
+                };
+                this.socket.onopen = () => {
+                    clearTimeout(this.__timer);
+                    this.__reconnectCount = 0;
+                    this.__errorCount = 0;
+                    resolve(this.socket);
+                };
+                this.socket.onmessage = (e) => {
+                    let data;
+                    try {
+                        data = JSON.parse(e.data);
+                    }
+                    catch (error) {
+                        throw error;
+                    }
+                    if (data) {
+                        this.__receive(data);
+                    }
+                };
+            });
+        }
+        close() {
+            this.socket.onclose = undefined;
+            this.socket.close();
+        }
     }
 
-    function poller(url, receiver) {
-        let timer;
-        let rc = 0;
-        function request(url, data) {
-            let response;
+    function AbortableFetch(url, options) {
+        let abortController = new AbortController();
+        let abortSignal = abortController.signal;
+        options.signal = abortSignal;
+        return {
+            request: Promise.race([
+                fetch(url, options).then((res) => {
+                    if (res.status === 200) {
+                        return res.json();
+                    }
+                    else {
+                        throw new Error(res.status.toString());
+                    }
+                }),
+                new Promise((_, reject) => setTimeout(() => {
+                    abortController.abort();
+                    reject(new Error('Fetch timeout reached. Request aborted.'));
+                }, 30000)),
+            ]),
+            abort() {
+                abortController.abort();
+            }
+        };
+    }
+
+    function ajax(url, options) {
+        let data = options.body;
+        let xhr;
+        return {
+            request: (new Promise(function (resolve, reject) {
+                xhr = new XMLHttpRequest();
+                const Abort = function () {
+                    reject(new Error('Request cancelled'));
+                }.bind(xhr);
+                const Expire = function () {
+                    reject(new Error('Connection timeout reached'));
+                    if ((this.readyState > 0) && (this.readyState < 4)) {
+                        this.abort();
+                    }
+                }.bind(xhr);
+                const Report = function (error) {
+                    reject(error);
+                    if ((this.readyState > 0) && (this.readyState < 4)) {
+                        this.abort();
+                    }
+                }.bind(xhr);
+                xhr.timeout = 30000;
+                xhr.addEventListener('readystatechange', function () {
+                    if (this.readyState == 4) {
+                        if (this.status == 200) {
+                            resolve(this.response);
+                        }
+                    }
+                });
+                xhr.addEventListener("error", Report);
+                xhr.addEventListener("timeout", Expire);
+                xhr.addEventListener('abort', Abort);
+                xhr.responseType = 'json';
+                xhr.open(options.method, url, true);
+                for (let h in options.headers) {
+                    xhr.setRequestHeader(h, options.headers[h]);
+                }
+                xhr.send(data || '');
+            })),
+            abort() {
+                xhr.abort();
+            }
+        };
+    }
+
+    class Poller {
+        constructor(url, receiver) {
+            this.__reconnectCount = 0;
+            this.__url = (url.search(/^https?:\/\//i) < 0) ?
+                url.replace(/^[^:]+:/i, "http:") :
+                url;
+            this.__receiver = receiver;
+            this.__init()
+                .then(() => this.__poll());
+        }
+        __request(url, data) {
             console.log(url);
+            let request;
             let options = {
                 method: (!data || data == '') ? 'GET' : 'POST',
                 headers: {
                     "Accept": "application/json"
-                }
+                },
             };
             if (options.method === 'POST') {
-                options["body"] = data;
+                options.body = data;
                 options.headers["Content-Type"] = 'application/json';
             }
             if (fetch && AbortController) {
-                let abortController = new AbortController();
-                let abortSignal = abortController.signal;
-                options["signal"] = abortSignal;
-                let abortableFetch = Promise.race([
-                    fetch(url, options).then((res) => {
-                        if (res.status === 200) {
-                            return res.json();
-                        }
-                        else {
-                            throw new Error(res.status.toString());
-                        }
-                    }),
-                    new Promise((_, reject) => setTimeout(() => {
-                        abortController.abort();
-                        reject('Fetch timeout reached. Request aborted.');
-                    }, 30000)),
-                ]);
-                response = abortableFetch;
+                request = AbortableFetch(url, options);
             }
             else {
-                response = (new Promise(function (resolve) {
-                    var xhr = new XMLHttpRequest();
-                    const Abort = function (reason) {
-                        console.error(reason);
-                        if ((this.readyState > 0) && (this.readyState < 4)) {
-                            this.abort();
-                        }
-                    }.bind(xhr);
-                    xhr.timeout = 30000;
-                    xhr.addEventListener('readystatechange', function () {
-                        if (this.readyState == 4) {
-                            if (this.status == 200) {
-                                resolve(this.response);
-                            }
-                        }
-                    });
-                    xhr.addEventListener("error", Abort);
-                    xhr.addEventListener("timeout", Abort);
-                    xhr.responseType = 'json';
-                    xhr.open(options.method, url, true);
-                    for (let h in options.headers) {
-                        xhr.setRequestHeader(h, options.headers[h]);
-                    }
-                    xhr.send(data || '');
-                }));
+                request = ajax(url, options);
             }
-            return response;
-        }
-        function init() {
-            return request(url + '?nopoll=true', '')
+            this.request = request;
+            return request.request
                 .then((response) => {
-                console.log('initialized');
-                receiver(response);
+                this.__receiver(response);
             });
         }
-        function Post(d) {
-            return request(url, (typeof d !== "string") ? JSON.stringify(d) : d)
-                .then((response) => receiver(response));
+        __Post(d) {
+            return this.__request(this.__url, (typeof d !== "string") ? JSON.stringify(d) : d);
         }
-        function poll() {
-            console.log('polling');
-            return request(url, '')
-                .then(function (response) {
-                receiver(response);
-                timer = window.setTimeout(poll, 1000);
+        __init() {
+            let resolver;
+            let rejector;
+            console.log('initializing');
+            this.transmitter = new Promise((resolve, reject) => {
+                [resolver, rejector] = [resolve, reject];
             });
-        }
-        return new Promise((resolve, reject) => {
-            url = (url.search(/^https?:\/\//i) < 0) ?
-                url.replace(/^[^:]+:/i, "http:") :
-                url;
-            init()
+            return this.__request(this.__url + '?nopoll=true', '')
                 .then(() => {
-                resolve(Post);
+                resolver(this.__Post.bind(this));
+                console.log('initialized');
+            }, (err) => {
+                console.error(`Connection Initialization failed:`, err);
+                rejector(err);
+            });
+        }
+        __poll() {
+            console.log('polling');
+            return this.__request(this.__url, '')
+                .then(() => {
+                this.__timer = window.setTimeout(this.__poll.bind(this), 1000);
             })
-                .then(poll)
-                .catch(function (err) {
-                console.error(err);
-                if (rc > 5) {
-                    window.clearTimeout(timer);
-                    rc = 0;
+                .catch((err) => {
+                console.error(`Connection polling failure: `, err);
+                if (this.__reconnectCount > 5) {
+                    window.clearTimeout(this.__timer);
+                    this.__reconnectCount = 0;
                     console.error("Poller connection lost. Reconnection constantly failing. Try reloading page.");
-                    reject(err);
+                    this.transmitter = Promise.reject(err);
                 }
                 else {
-                    console.error("Reconnecting attempt " + rc);
-                    timer = window.setTimeout(poll, 1000);
+                    console.error("Reconnecting attempt " + this.__reconnectCount++);
+                    this.__timer = window.setTimeout(this.__poll.bind(this), 1000);
                 }
             });
-        });
+        }
+        close() {
+            this.request.abort();
+        }
+    }
+
+    class Channel {
+        get egress() {
+            return this.__backend.transmitter;
+        }
+        close() {
+            this.__backend.close();
+        }
+        constructor(url, ingress) {
+            if (((url.search(/^wss?:\/\//i) >= 0)) && WebSocket) {
+                this.__backend = new Socket(url, ingress);
+            }
+            else {
+                this.__backend = new Poller(url.replace(/^ws/, "http"), ingress);
+            }
+        }
     }
 
     function element(desc){
@@ -608,63 +648,74 @@ var Seamless = (function (exports) {
                 status,
             };
             Object.defineProperties(this, props);
-            if (seamless.value)
-                seamless.value(buffer);
+            if (this.seamless)
+                this.seamless(buffer, transmit);
         }
     }
 
-    function Connection(url) {
-        var self = this;
-        function ToDOM(data) {
-            self.clients.forEach(function (client) {
+    class Connection {
+        constructor(url) {
+            this.clients = [];
+            this.to(url);
+        }
+        __ToDOM(data) {
+            this.clients.forEach(function (client) {
                 if (client.seamless)
                     client.seamless(data);
                 else
                     client.status = data;
             });
         }
-        function Receiver(response) {
-            self.buffer.write(response).then((data) => ToDOM(data));
+        __receiver(response) {
+            this.__buffer.write(response).then((data) => this.__ToDOM(data));
         }
-        function Connect(receiver) {
-            if (((self.url.search(/^wss?:\/\//i) >= 0)) && WebSocket) {
-                return socket(self.url, receiver);
-            }
-            else {
-                return poller(self.url.replace(/^ws/, "http"), receiver);
-            }
-        }
-        function Transmit(data) {
+        __transmit(data) {
             return Promise.all([
-                Transmitter,
-                self.buffer.write(data)
+                this.__transmitter,
+                this.__buffer.write(data)
             ]).then(([transmitter, data]) => {
                 return transmitter(data);
             });
         }
-        this.url = ComplementUrl(url);
-        this.buffer = new Buffer(this.url);
-        this.clients = [];
-        const Transmitter = Connect(Receiver);
-        this.then = function (callback) {
-            return Transmitter.then(() => callback(self));
-        };
-        this.bindClients = function (elements) {
-            this.clients = elements.map((element) => new SeamlessClient(element, Transmit, self.buffer.data));
-            return self;
-        };
-        this.unbindClients = function (elements) {
-            let elems = elements || self.clients;
+        get __transmitter() {
+            return this.__channel.egress;
+        }
+        to(url) {
+            if (this.__channel) {
+                this.close();
+            }
+            this.url = ComplementUrl(url);
+            this.__buffer = new Buffer(this.url);
+            this.__channel = new Channel(this.url, this.__receiver.bind(this));
+            return this;
+        }
+        get established() {
+            return new Promise((resolve) => {
+                this.__transmitter.then(() => {
+                    resolve(this);
+                });
+            });
+        }
+        close() {
+            this.__channel.close();
+            return this;
+        }
+        bindClients(elements) {
+            this.clients = elements.map((element) => new SeamlessClient(element, this.__transmit.bind(this), this.__buffer.data));
+            return this;
+        }
+        unbindClients(elements) {
+            let elems = elements || this.clients;
             elems.forEach((e) => {
-                let index = self.clients.indexOf(e);
+                let index = this.clients.indexOf(e);
                 if (index >= 0) {
-                    let el = self.clients.splice(index, 1)[0];
+                    let el = this.clients.splice(index, 1)[0];
                     if (el.deseamless)
                         el.deseamless();
                 }
             });
-            return self;
-        };
+            return this;
+        }
     }
 
     const MD5$1 = md5();
@@ -675,13 +726,9 @@ var Seamless = (function (exports) {
             let new_connections = [];
             for (let i = 0; i < clients.length; i++) {
                 let clientNode = clients[i];
-                new_connections.push((new Promise((resolve) => {
-                    Seamless.connect(clientNode.dataset.seamless)
-                        .bindClients([clientNode])
-                        .then((connection) => {
-                        resolve(connection);
-                    });
-                })));
+                new_connections.push(Seamless.connect(clientNode.dataset.seamless)
+                    .bindClients([clientNode])
+                    .established);
             }
             return Promise.all(new_connections);
         },
@@ -700,7 +747,14 @@ var Seamless = (function (exports) {
         disconnect(endpoint) {
             let connection = Seamless.getConnection(endpoint);
             connection.unbindClients();
+            connection.close();
             return Seamless.connections.delete(MD5$1(connection.url));
+        },
+        shutdown() {
+            let endpoint;
+            for (endpoint in Seamless.connections.keys) {
+                Seamless.disconnect(endpoint);
+            }
         }
     };
 

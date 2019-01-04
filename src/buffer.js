@@ -1,11 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import { md5 } from './md5.js';
 import { storage } from './storage.js';
 const MD5 = md5();
@@ -16,25 +8,18 @@ export class Buffer {
         this.__init();
     }
     __init() {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield (this.datahash = Promise.resolve(STORAGE.getItem(this.hash)));
-            yield this.__retrieve();
-            return this;
-        });
+        this.datahash = Promise.resolve(STORAGE.getItem(this.hash));
+        return this.__retrieve().then(() => this);
     }
     read() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return Promise.race([
-                this.cache,
-                this.__retrieve()
-            ]);
-        });
+        return Promise.race([
+            this.cache,
+            this.__retrieve()
+        ]);
     }
     __retrieve() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let dh = yield this.datahash;
-            return this.__cache(STORAGE.getItem(dh) || '');
-        });
+        return this.datahash
+            .then((dh) => this.__cache(STORAGE.getItem(dh) || ''));
     }
     __cache(data) {
         let d;
@@ -49,23 +34,22 @@ export class Buffer {
         return (this.cache = d);
     }
     write(v) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let odh = yield this.datahash;
-            let val;
-            try {
-                val = JSON.stringify(v);
-            }
-            catch (error) {
-                console.error(error);
-                val = '';
-            }
-            let dh = MD5(val);
+        let val;
+        try {
+            val = JSON.stringify(v);
+        }
+        catch (error) {
+            console.error(error);
+            val = '';
+        }
+        let dh = MD5(val);
+        return this.datahash.then((odh) => {
             if (dh !== odh) {
                 this.datahash = Promise.resolve(STORAGE.removeItem(odh))
                     .then(() => {
                     this.__cache(val);
-                    Promise.resolve(STORAGE.setItem(dh, val));
-                    Promise.resolve(STORAGE.setItem(this.hash, dh));
+                    STORAGE.setItem(dh, val);
+                    STORAGE.setItem(this.hash, dh);
                     return dh;
                 });
             }
@@ -84,12 +68,12 @@ export class Buffer {
         this.write(v);
     }
     clear() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let dh = yield this.datahash;
+        return this.datahash
+            .then((dh) => {
             STORAGE.removeItem(dh);
             STORAGE.removeItem(this.hash);
-            return yield this.__init();
-        });
+        })
+            .then(() => this.__init());
     }
 }
 //# sourceMappingURL=buffer.js.map

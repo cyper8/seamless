@@ -71,7 +71,7 @@ export class SeamlessClient {
 
     Object.defineProperties(this, props);
 
-    if (seamless.value) seamless.value(buffer);
+    if (this.seamless) this.seamless(buffer, transmit);
 
   }
 

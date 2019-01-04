@@ -14,25 +14,24 @@ export class Buffer {
     this.__init();
   }
 
-  async __init(): Promise<Buffer> {
-    await (this.datahash = Promise.resolve(STORAGE.getItem(<string>this.hash)));
-    await this.__retrieve();
-    return this;
+  private __init(): Promise<Buffer> {
+    this.datahash = Promise.resolve(STORAGE.getItem(<string>this.hash));
+    return this.__retrieve().then(()=>this);
   }
 
-  async read(): Promise<Object> {
+  read(): Promise<Object> {
     return Promise.race([
       this.cache,
       this.__retrieve()
     ]);
   }
 
-  async __retrieve():Promise<Object> {
-    let dh = await this.datahash;
-    return this.__cache(STORAGE.getItem(<string>dh) || '');
+  private __retrieve():Promise<Object> {
+    return this.datahash
+    .then((dh)=>this.__cache(STORAGE.getItem(<string>dh) || ''));
   }
 
-  __cache(data:string):string {
+  private __cache(data:string):string {
     let d;
     if (data !== '') {
       try {
@@ -44,8 +43,7 @@ export class Buffer {
     return (this.cache = d);
   }
 
-  async write(v:Object):Promise<Object> {
-    let odh = await this.datahash;
+  write(v:Object):Promise<Object> {
     let val: string;
     try {
       val = JSON.stringify(v);
@@ -54,16 +52,18 @@ export class Buffer {
       val = '';
     }
     let dh:MD5Hash = MD5(val);
-    if (dh !== odh) {
-      this.datahash = Promise.resolve(STORAGE.removeItem(<string>odh))
-      .then(()=>{
-        this.__cache(val);
-        Promise.resolve(STORAGE.setItem(<string>dh,val));
-        Promise.resolve(STORAGE.setItem(<string>this.hash, <string>dh));
-        return dh;
-      });
-    }
-    return v;
+    return this.datahash.then((odh)=>{
+      if (dh !== odh) {
+        this.datahash = Promise.resolve(STORAGE.removeItem(<string>odh))
+        .then(()=>{
+          this.__cache(val);
+          STORAGE.setItem(<string>dh,val);
+          STORAGE.setItem(<string>this.hash, <string>dh);
+          return dh;
+        });
+      }
+      return v;
+    });
   }
 
   get data() {
@@ -78,11 +78,13 @@ export class Buffer {
     this.write(v);
   }
 
-  async clear(): Promise<Buffer> {
-    let dh = await this.datahash;
-    STORAGE.removeItem(<string>dh);
-    STORAGE.removeItem(<string>this.hash);
-    return await this.__init();
+  clear(): Promise<Buffer> {
+    return this.datahash
+    .then((dh)=>{
+      STORAGE.removeItem(<string>dh);
+      STORAGE.removeItem(<string>this.hash);
+    })
+    .then(()=>this.__init());
   }
 
 }

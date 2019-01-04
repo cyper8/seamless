@@ -59,8 +59,8 @@ export class SeamlessClient {
             status,
         };
         Object.defineProperties(this, props);
-        if (seamless.value)
-            seamless.value(buffer);
+        if (this.seamless)
+            this.seamless(buffer, transmit);
     }
 }
 //# sourceMappingURL=client.js.map
