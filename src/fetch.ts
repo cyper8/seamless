@@ -17,7 +17,7 @@ export function AbortableFetch(url:URLString, options: RequestInit): AbortableRe
       }),
       new Promise((_, reject)=>setTimeout(()=>{
         abortController.abort();
-        reject('Fetch timeout reached. Request aborted.');
+        reject(new Error('Fetch timeout reached. Request aborted.'));
       }, 30000)),
     ]),
     abort() {

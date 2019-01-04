@@ -2,10 +2,19 @@ export function ajax(url, options) {
     let data = options.body;
     let xhr;
     return {
-        request: (new Promise(function (resolve) {
+        request: (new Promise(function (resolve, reject) {
             xhr = new XMLHttpRequest();
-            const Abort = function (reason) {
-                console.error(reason);
+            const Abort = function () {
+                reject(new Error('Request cancelled'));
+            }.bind(xhr);
+            const Expire = function () {
+                reject(new Error('Connection timeout reached'));
+                if ((this.readyState > 0) && (this.readyState < 4)) {
+                    this.abort();
+                }
+            }.bind(xhr);
+            const Report = function (error) {
+                reject(error);
                 if ((this.readyState > 0) && (this.readyState < 4)) {
                     this.abort();
                 }
@@ -18,8 +27,9 @@ export function ajax(url, options) {
                     }
                 }
             });
-            xhr.addEventListener("error", Abort);
-            xhr.addEventListener("timeout", Abort);
+            xhr.addEventListener("error", Report);
+            xhr.addEventListener("timeout", Expire);
+            xhr.addEventListener('abort', Abort);
             xhr.responseType = 'json';
             xhr.open(options.method, url, true);
             for (let h in options.headers) {
