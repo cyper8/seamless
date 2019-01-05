@@ -1,9 +1,10 @@
 import { SeamlessSync } from './ssync.js';
 export class SeamlessClient {
-    constructor(element, transmit, buffer) {
+    constructor(element, transmit, bufferCache) {
+        let data;
         function SeamlessDataChangeEventHandler(evt) {
-            transmit(buffer);
             evt.stopPropagation();
+            transmit(data);
         }
         let seamless = {
             value: Function,
@@ -27,7 +28,7 @@ export class SeamlessClient {
         };
         let status = {
             get() {
-                return buffer;
+                return data;
             },
             set(v) {
                 transmit(v);
@@ -59,8 +60,12 @@ export class SeamlessClient {
             status,
         };
         Object.defineProperties(this, props);
-        if (this.seamless)
-            this.seamless(buffer, transmit);
+        Promise.resolve(bufferCache).then((d) => {
+            data = d;
+            if (this.seamless) {
+                this.seamless(data, transmit);
+            }
+        });
     }
 }
 //# sourceMappingURL=client.js.map

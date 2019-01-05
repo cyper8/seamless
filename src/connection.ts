@@ -60,7 +60,7 @@ export class Connection {
 
   bindClients(elements: Array<HTMLElement|Function|Object>): Connection {
     this.clients = elements.map(
-      (element) => new SeamlessClient(element, this.__transmit.bind(this), this.__buffer.data)
+      (element) => new SeamlessClient(element, this.__transmit.bind(this), this.__buffer.cache)
     );
     return this;
   }

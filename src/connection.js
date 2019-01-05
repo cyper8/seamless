@@ -50,7 +50,7 @@ export class Connection {
         return this;
     }
     bindClients(elements) {
-        this.clients = elements.map((element) => new SeamlessClient(element, this.__transmit.bind(this), this.__buffer.data));
+        this.clients = elements.map((element) => new SeamlessClient(element, this.__transmit.bind(this), this.__buffer.cache));
         return this;
     }
     unbindClients(elements) {

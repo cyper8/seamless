@@ -1,4 +1,5 @@
 import { SeamlessSync } from './ssync.js';
+import { Buffer } from './buffer.js';
 
 export interface SeamlessClient {
   seamless: Function|false
@@ -7,11 +8,11 @@ export interface SeamlessClient {
 }
 
 export class SeamlessClient {
-  constructor(element: HTMLElement|Function|Object, transmit: Function, buffer: Object) {
-
+  constructor(element: HTMLElement|Function|Object, transmit: Function, bufferCache: Promise<Object>|Object) {
+    let data: Object;
     function SeamlessDataChangeEventHandler(evt: CustomEvent) {
-      transmit(buffer);
       evt.stopPropagation();
+      transmit(data);
     }
 
     let seamless: PropertyDescriptor = {
@@ -38,7 +39,7 @@ export class SeamlessClient {
 
     let status: PropertyDescriptor = {
       get() {
-        return buffer;
+        return data;
       },
       set(v) {
         transmit(v);
@@ -70,8 +71,13 @@ export class SeamlessClient {
     };
 
     Object.defineProperties(this, props);
-
-    if (this.seamless) this.seamless(buffer, transmit);
+    
+    Promise.resolve(bufferCache).then((d)=>{
+      data = d;
+      if (this.seamless) {
+        this.seamless(data, transmit);
+      }
+    });
 
   }
 

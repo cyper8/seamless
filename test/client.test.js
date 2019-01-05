@@ -24,10 +24,11 @@ let testData = {
 describe('SeamlessClient instance', function() {
   describe('if it wraps HTMLElement', function() {
     describe('that has no custom sync function it', function() {
-      beforeEach(function() {
+      beforeEach(function(done) {
         testElement = document.createElement('div');
         document.body.appendChild(testElement);
         client = new SeamlessClient(testElement, testTransmit, testData);
+        Promise.resolve(testData).then((d)=>done());
       });
       afterEach(function() {
         client.deseamless();
@@ -59,13 +60,14 @@ describe('SeamlessClient instance', function() {
       });
     });
     describe('that has custom sync function it', function() {
-      beforeEach(function() {
+      beforeEach(function(done) {
         testElement = document.createElement('div');
         document.body.appendChild(testElement);
         window.alternativeSyncFunction = jasmine.createSpy('altSync_spy', testFunction)
         .and.callThrough();
         testElement.dataset.sync = 'alternativeSyncFunction';
         client = new SeamlessClient(testElement, testTransmit, testData);
+        Promise.resolve(testData).then((d)=>done());
       });
       afterEach(function() {
         client.deseamless();
@@ -79,7 +81,8 @@ describe('SeamlessClient instance', function() {
         function() {
           expect(client.seamless).toBeDefined();
           expect(client.seamless.name).toMatch(/^bound/);
-          expect(window.alternativeSyncFunction).toHaveBeenCalledWith(testData);
+          expect(window.alternativeSyncFunction)
+          .toHaveBeenCalledWith(testData,testTransmit);
         }
       );
       it(`should define status setter that transmits changes and getter that
@@ -99,10 +102,11 @@ describe('SeamlessClient instance', function() {
     });
   });
   describe('if it wraps Function it', function() {
-    beforeEach(function() {
+    beforeEach(function(done) {
       testFuncSpy = jasmine.createSpy('testFuncSpy', testFunction)
       .and.callThrough();
       client = new SeamlessClient(testFuncSpy, testTransmit, testData);
+      Promise.resolve(testData).then(()=>done());
     });
     afterEach(function() {
       client.deseamless();
@@ -113,7 +117,7 @@ describe('SeamlessClient instance', function() {
       function() {
         expect(client.seamless).toBeDefined();
         expect(client.seamless.name).toMatch(/^bound/);
-        expect(testFuncSpy).toHaveBeenCalledWith(testData);
+        expect(testFuncSpy).toHaveBeenCalledWith(testData, testTransmit);
       }
     );
     it(`should define status setter that transmits changes and getter that
@@ -132,8 +136,9 @@ describe('SeamlessClient instance', function() {
     });
   });
   describe('if it wraps Object it', function() {
-    beforeEach(function() {
+    beforeEach(function(done) {
       client = new SeamlessClient(testObject, testTransmit, testData);
+      Promise.resolve(testData).then((d)=>done());
     });
     afterEach(function() {
       client.deseamless();

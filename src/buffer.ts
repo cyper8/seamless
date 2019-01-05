@@ -16,7 +16,7 @@ export class Buffer {
 
   private __init(): Promise<Buffer> {
     this.datahash = Promise.resolve(STORAGE.getItem(<string>this.hash));
-    return this.__retrieve().then(()=>this);
+    return (this.cache = this.__retrieve()).then(()=>this);
   }
 
   read(): Promise<Object> {
@@ -28,7 +28,8 @@ export class Buffer {
 
   private __retrieve():Promise<Object> {
     return this.datahash
-    .then((dh)=>this.__cache(STORAGE.getItem(<string>dh) || ''));
+    .then((dh)=>STORAGE.getItem(<string>dh) || '')
+    .then((data)=>this.__cache(data));
   }
 
   private __cache(data:string):string {
@@ -67,7 +68,7 @@ export class Buffer {
   }
 
   get data() {
-    if (this.cache instanceof Object) {
+    if (this.cache instanceof Object && !(this.cache instanceof Promise)) {
       return this.cache;
     } else {
       return undefined;

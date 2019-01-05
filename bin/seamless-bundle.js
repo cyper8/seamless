@@ -219,7 +219,7 @@ var Seamless = (function (exports) {
         }
         __init() {
             this.datahash = Promise.resolve(STORAGE.getItem(this.hash));
-            return this.__retrieve().then(() => this);
+            return (this.cache = this.__retrieve()).then(() => this);
         }
         read() {
             return Promise.race([
@@ -229,7 +229,8 @@ var Seamless = (function (exports) {
         }
         __retrieve() {
             return this.datahash
-                .then((dh) => this.__cache(STORAGE.getItem(dh) || ''));
+                .then((dh) => STORAGE.getItem(dh) || '')
+                .then((data) => this.__cache(data));
         }
         __cache(data) {
             let d;
@@ -267,7 +268,7 @@ var Seamless = (function (exports) {
             });
         }
         get data() {
-            if (this.cache instanceof Object) {
+            if (this.cache instanceof Object && !(this.cache instanceof Promise)) {
                 return this.cache;
             }
             else {
@@ -589,10 +590,11 @@ var Seamless = (function (exports) {
     }
 
     class SeamlessClient {
-        constructor(element, transmit, buffer) {
+        constructor(element, transmit, bufferCache) {
+            let data;
             function SeamlessDataChangeEventHandler(evt) {
-                transmit(buffer);
                 evt.stopPropagation();
+                transmit(data);
             }
             let seamless = {
                 value: Function,
@@ -616,7 +618,7 @@ var Seamless = (function (exports) {
             };
             let status = {
                 get() {
-                    return buffer;
+                    return data;
                 },
                 set(v) {
                     transmit(v);
@@ -648,8 +650,12 @@ var Seamless = (function (exports) {
                 status,
             };
             Object.defineProperties(this, props);
-            if (this.seamless)
-                this.seamless(buffer, transmit);
+            Promise.resolve(bufferCache).then((d) => {
+                data = d;
+                if (this.seamless) {
+                    this.seamless(data, transmit);
+                }
+            });
         }
     }
 
@@ -701,7 +707,7 @@ var Seamless = (function (exports) {
             return this;
         }
         bindClients(elements) {
-            this.clients = elements.map((element) => new SeamlessClient(element, this.__transmit.bind(this), this.__buffer.data));
+            this.clients = elements.map((element) => new SeamlessClient(element, this.__transmit.bind(this), this.__buffer.cache));
             return this;
         }
         unbindClients(elements) {

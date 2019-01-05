@@ -9,7 +9,7 @@ export class Buffer {
     }
     __init() {
         this.datahash = Promise.resolve(STORAGE.getItem(this.hash));
-        return this.__retrieve().then(() => this);
+        return (this.cache = this.__retrieve()).then(() => this);
     }
     read() {
         return Promise.race([
@@ -19,7 +19,8 @@ export class Buffer {
     }
     __retrieve() {
         return this.datahash
-            .then((dh) => this.__cache(STORAGE.getItem(dh) || ''));
+            .then((dh) => STORAGE.getItem(dh) || '')
+            .then((data) => this.__cache(data));
     }
     __cache(data) {
         let d;
@@ -57,7 +58,7 @@ export class Buffer {
         });
     }
     get data() {
-        if (this.cache instanceof Object) {
+        if (this.cache instanceof Object && !(this.cache instanceof Promise)) {
             return this.cache;
         }
         else {
