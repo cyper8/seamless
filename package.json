@@ -12,18 +12,16 @@
   "browser": "bin/seamless-client.min.js",
   "module": "src/seamless.js",
   "dependencies": {
-    "apollo-boost": "^0.1.21",
-    "basic-library": "git+https://github.com/cyper8/basic-library.git",
-    "graphql": "^14.0.2"
+    "basic-library": "git+https://github.com/cyper8/basic-library.git"
   },
   "devDependencies": {
     "body-parser": "^1.18.3",
-    "eslint": "^5.9.0",
+    "eslint": "^5.12.0",
     "express": "^4.16.4",
     "express-ws": "^4.0.0",
     "helmet": "^3.15.0",
-    "jshint": "^2.9.6",
-    "karma": "^3.1.1",
+    "jshint": "^2.9.7",
+    "karma": "^3.1.4",
     "karma-chrome-launcher": "^2.2.0",
     "karma-firefox-launcher": "^1.1.0",
     "karma-jasmine": "^2.0.1",
@@ -32,11 +30,11 @@
     "karma-spec-reporter": "0.0.32",
     "karma-websocket-server": "^1.0.0",
     "phantomjs-prebuilt": "^2.1.16",
-    "rollup": "^0.67.3",
+    "rollup": "^0.67.4",
     "rollup-plugin-babel-minify": "^6.2.0",
     "rollup-plugin-commonjs": "^9.2.0",
     "rollup-plugin-node-resolve": "^3.4.0",
-    "typescript": "^3.1.6"
+    "typescript": "^3.2.2"
   },
   "scripts": {
     "build": "tsc && rollup -c",
