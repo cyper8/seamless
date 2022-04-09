@@ -24,7 +24,7 @@ export class Socket {
                 if (this.__reconnectCount < 5)
                     this.__connection = this.__connect();
                 else
-                    throw new Error(this.__url + ' does not answer');
+                    throw new Error(this.__url + " does not answer");
             };
             this.socket.onerror = (e) => {
                 console.error(e);

@@ -2,7 +2,7 @@
 export function storage() {
     function storageAvailable(type) {
         try {
-            var storage = window[type], x = '__storage_test__';
+            var storage = window[type], x = "__storage_test__";
             storage.setItem(x, x);
             storage.removeItem(x);
             return true;
@@ -11,43 +11,43 @@ export function storage() {
             return false;
         }
     }
-    if (storageAvailable('localStorage')) {
+    if (storageAvailable("localStorage")) {
         return window.localStorage;
     }
     else {
         return Object.defineProperties({}, {
-            'setItem': {
+            setItem: {
                 value: function (k, v) {
-                    var e = new StorageEvent('storage', {
+                    var e = new StorageEvent("storage", {
                         key: k,
                         oldValue: this[k],
                         newValue: v,
-                        storageArea: this
+                        storageArea: this,
                     });
                     this[k] = v;
                     (window || self).dispatchEvent(e);
                     return v; // incompatible with Storage interface - it should return void
-                }
+                },
             },
-            'getItem': {
+            getItem: {
                 value: function (k) {
                     return this[k] || null;
-                }
+                },
             },
-            'removeItem': {
+            removeItem: {
                 value: function (k) {
                     let v = this[k];
                     delete this[k];
-                    window.dispatchEvent((new StorageEvent('storage', {
+                    window.dispatchEvent(new StorageEvent("storage", {
                         key: k,
                         oldValue: v,
                         newValue: undefined,
-                        storageArea: this
-                    })));
+                        storageArea: this,
+                    }));
                     return this;
-                }
+                },
             },
-            'key': {
+            key: {
                 value: function (n) {
                     var i, c = 0;
                     for (i in this) {
@@ -55,26 +55,26 @@ export function storage() {
                             return this[i];
                         c++;
                     }
-                }
+                },
             },
-            'clear': {
+            clear: {
                 value: function () {
                     var i;
                     for (i in this) {
                         this.removeItem(i);
                     }
                     return this;
-                }
+                },
             },
-            'length': {
+            length: {
                 get: function () {
                     var i, c = 0;
                     for (i in this) {
                         c++;
                     }
                     return c;
-                }
-            }
+                },
+            },
         });
     }
 }

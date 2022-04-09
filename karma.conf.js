@@ -6,10 +6,7 @@ var SeamlessTestMiddleware = function(config) {
 };
 const WSSeamlessServer = require('./test/wsserver.js');
 
-var browsers = ["PhantomJS"];
-if (!process.env.C9_SH_EXECUTED) {
-  browsers = ["ChromeHeadless", "FirefoxHeadless"];
-}
+var browsers = ["ChromiumHeadless", "FirefoxHeadless"];
 
 
 module.exports = function(config) {
@@ -43,7 +40,6 @@ module.exports = function(config) {
         'middleware:SeamlessTest': ['factory', SeamlessTestMiddleware]
       },
       'karma-jasmine',
-      'karma-phantomjs-launcher',
       'karma-chrome-launcher',
       'karma-firefox-launcher',
       'karma-promise',

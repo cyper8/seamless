@@ -1,21 +1,21 @@
-import { URLString } from './utils/complement-url.js';
-import { ChannelBackend } from './channel';
+import { URLString } from "./utils/complement-url.js";
+import { ChannelBackend } from "./channel.js";
 
 export class Socket implements ChannelBackend {
-  socket: WebSocket
-  private __connection: Promise<WebSocket>
-  private __url: URLString
-  private __receive: Function
-  private __timer: number
-  private __reconnectCount: number = 0
-  private __errorCount: number = 0
+  socket: WebSocket;
+  private __connection: Promise<WebSocket>;
+  private __url: URLString;
+  private __receive: Function;
+  private __timer: number;
+  private __reconnectCount: number = 0;
+  private __errorCount: number = 0;
 
-  get transmitter(): Promise<(data: BodyInit)=>Promise<void>> {
-    return this.__connection.then(()=>this.__send.bind(this));
+  get transmitter(): Promise<(data: BodyInit) => Promise<void>> {
+    return this.__connection.then(() => this.__send.bind(this));
   }
 
-  private __send(data: Blob|string|ArrayBuffer): void {
-    this.__connection.then(function(active_socket: WebSocket) {
+  private __send(data: Blob | string | ArrayBuffer): void {
+    this.__connection.then(function (active_socket: WebSocket) {
       active_socket.send(data);
     });
   }
@@ -28,7 +28,7 @@ export class Socket implements ChannelBackend {
         clearTimeout(this.__timer);
         this.__reconnectCount++;
         if (this.__reconnectCount < 5) this.__connection = this.__connect();
-        else throw new Error(this.__url+' does not answer');
+        else throw new Error(this.__url + " does not answer");
       };
       this.socket.onerror = (e) => {
         console.error(e);
@@ -48,7 +48,7 @@ export class Socket implements ChannelBackend {
         let data: Object;
         try {
           data = JSON.parse(e.data);
-        } catch(error) {
+        } catch (error) {
           throw error;
         }
         if (data) {

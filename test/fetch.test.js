@@ -38,14 +38,14 @@ describe('AbortableFetch', function() {
       })
       .finally(()=>done());
     });
-    it('should be able to be aborted', function(done) {
+    it('should be able to be aborted', async function() {
       fetch.abort();
-      expectAsync(fetch.request).toBeRejected();
-      fetch.request
+      await expectAsync(fetch.request
       .catch((error)=>{
-        expect(error instanceof AbortError).toBeTruthy();
+        expect(error.name).toEqual('AbortError');
+        throw error
       })
-      .finally(()=>done());
+      ).toBeRejectedWithError(DOMException);
     });
   });
   describe('POST data', function() {

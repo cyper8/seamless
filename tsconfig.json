@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
     "lib": ["es2015","dom"],
-    "outDir": "src",
     "target": "es2015",
+    "moduleResolution": "node",
     "noImplicitAny": false,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "noLib": false
   },
   "include": [
-    "src/**/*"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules"

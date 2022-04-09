@@ -1,6 +1,7 @@
-import resolve from 'rollup-plugin-node-resolve';
-import commonjs from 'rollup-plugin-commonjs';
-import minify from 'rollup-plugin-babel-minify';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import { terser } from 'rollup-plugin-terser';
+import html from '@web/rollup-plugin-html';
 
 export default [
 	{
@@ -13,7 +14,7 @@ export default [
 		plugins: [
 			resolve(), // so Rollup can find `ms`
 			commonjs(), // so Rollup can convert `ms` to an ES module
-	    // minify(),
+	    // terser(),
 		]
 	},
 	{
@@ -26,7 +27,19 @@ export default [
 		plugins: [
 			resolve(), // so Rollup can find `ms`
 			commonjs(), // so Rollup can convert `ms` to an ES module
-	    minify(),
+	    terser(),
+		]
+	},
+	{
+		input: './index.html',
+		output: {
+			dir: 'demo'
+		},
+		plugins: [
+			resolve(),
+			commonjs(),
+			terser(),
+			html(),
 		]
 	}
 ];

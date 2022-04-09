@@ -39,9 +39,14 @@ describe('Ajax', function() {
       .catch(console.error)
       .finally(()=>done());
     });
-    it('should be able to be aborted', function() {
+    it('should be able to be aborted', async function() {
       fetch.abort();
-      expectAsync(fetch.request).toBeRejected();
+      await expectAsync(fetch.request
+      .catch((error)=>{
+        expect(error.name).toEqual('AbortError');
+        throw error
+      })
+      ).toBeRejectedWithError(DOMException);
     });
   });
   describe('POST request', function() {
