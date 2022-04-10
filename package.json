@@ -12,7 +12,7 @@
   "browser": "bin/seamless-client.min.js",
   "module": "src/seamless.js",
   "dependencies": {
-    "basic-library": "git+https://github.com/cyper8/basic-library.git"
+    "debounced": "github:cyper8/debounced"
   },
   "devDependencies": {
     "@web/rollup-plugin-html": "^1.10.2",

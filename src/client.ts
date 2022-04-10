@@ -1,14 +1,17 @@
-import { SeamlessSync } from './ssync.js';
-import { Buffer } from './buffer.js';
+import { SeamlessSync } from "./ssync.js";
 
 export interface SeamlessClient {
-  seamless: Function|false
-  deseamless: Function
-  status: Object
+  seamless: Function | false;
+  deseamless: Function;
+  status: Object;
 }
 
 export class SeamlessClient {
-  constructor(element: HTMLElement|Function|Object, transmit: Function, bufferCache: Promise<Object>|Object) {
+  constructor(
+    element: HTMLElement | Function | Object,
+    transmit: Function,
+    bufferCache: Promise<Object> | Object
+  ) {
     let data: Object;
     function SeamlessDataChangeEventHandler(evt: CustomEvent) {
       evt.stopPropagation();
@@ -26,11 +29,14 @@ export class SeamlessClient {
         if (this.seamless !== undefined) {
           delete this.seamless;
           if (this.removeEventListener) {
-            this.removeEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
+            this.removeEventListener(
+              "seamlessdatachange",
+              SeamlessDataChangeEventHandler
+            );
           }
         }
         if (this.status) {
-          delete this.status
+          delete this.status;
         }
       }.bind(this),
       enumerable: true,
@@ -49,9 +55,14 @@ export class SeamlessClient {
     };
 
     if (element instanceof HTMLElement) {
-      element.addEventListener('seamlessdatachange', SeamlessDataChangeEventHandler);
-      if (element.dataset.sync &&
-        (typeof window[element.dataset.sync] === "function")) {
+      element.addEventListener(
+        "seamlessdatachange",
+        SeamlessDataChangeEventHandler
+      );
+      if (
+        element.dataset.sync &&
+        typeof window[element.dataset.sync] === "function"
+      ) {
         seamless.value = window[element.dataset.sync].bind(element);
       } else {
         seamless.value = SeamlessSync.bind(element);
@@ -71,14 +82,12 @@ export class SeamlessClient {
     };
 
     Object.defineProperties(this, props);
-    
-    Promise.resolve(bufferCache).then((d)=>{
+
+    Promise.resolve(bufferCache).then((d) => {
       data = d;
       if (this.seamless) {
         this.seamless(data, transmit);
       }
     });
-
   }
-
 }
